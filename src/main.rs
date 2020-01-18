@@ -4,9 +4,11 @@ use std::io::Write;
 
 mod vec3;
 mod ray;
+mod hittable;
 
 use vec3::Vec3;
 use ray::Ray;
+use hittable::hit_sphere;
 
 fn main() -> Result<(), std::io::Error> {
     let width = 200;
@@ -50,6 +52,10 @@ fn create_file_content(height: i32, width: i32) -> String {
 }
 
 fn color(ray: &Ray) -> Vec3 {
+    if hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, ray) {
+        return Vec3(1.0, 0.0, 0.0);
+    }
+
     let unit_dir = ray.dir.normalize();
     let t = 0.5 * (unit_dir.1 + 1.0);
     (1.0 - t) * Vec3(1.0, 1.0, 1.0) + t * Vec3(0.5, 0.7, 1.0)

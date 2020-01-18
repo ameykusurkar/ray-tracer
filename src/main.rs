@@ -3,6 +3,10 @@ use std::path::Path;
 use std::io::Write;
 
 mod vec3;
+mod ray;
+
+use vec3::Vec3;
+use ray::Ray;
 
 fn main() -> Result<(), std::io::Error> {
     let width = 200;
@@ -22,13 +26,20 @@ fn create_file_content(height: i32, width: i32) -> String {
 
     result.push_str(&format!("P3\n{} {}\n255\n", width, height));
 
-    for i in 0..height {
+    let bottom_left = Vec3(-2.0, -1.0, -1.0);
+    let horizontal = Vec3(4.0, 0.0, 0.0);
+    let vertical = Vec3(0.0, 2.0, 0.0);
+    let origin = Vec3(0.0, 0.0, 0.0);
+
+    for i in (0..height).rev() {
         for j in 0..width {
-            let col = vec3::Vec3(
-                i as f32 / height as f32,
-                j as f32 / width as f32,
-                0.2,
-            );
+            let x = j as f32 / width as f32;
+            let y = i as f32 / height as f32;
+
+            let dir = bottom_left + (x * horizontal) + (y * vertical);
+            let ray = Ray {origin, dir};
+            let col = color(&ray);
+
             result.push_str(
                 &format!("{} {} {}\n", to_rgb(col.0), to_rgb(col.1), to_rgb(col.2))
             );
@@ -36,6 +47,12 @@ fn create_file_content(height: i32, width: i32) -> String {
     }
 
     result
+}
+
+fn color(ray: &Ray) -> Vec3 {
+    let unit_dir = ray.dir.normalize();
+    let t = 0.5 * (unit_dir.1 + 1.0);
+    (1.0 - t) * Vec3(1.0, 1.0, 1.0) + t * Vec3(0.5, 0.7, 1.0)
 }
 
 fn to_rgb(val: f32) -> u8 {

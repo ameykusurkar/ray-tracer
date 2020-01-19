@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Vec3(pub f32, pub f32, pub f32);
 
 impl Vec3 {
@@ -22,6 +22,14 @@ impl Add for Vec3 {
 
     fn add(self, rhs: Self) -> Vec3 {
         Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    }
+}
+
+impl Add<f32> for Vec3 {
+    type Output = Vec3;
+
+    fn add(self, rhs: f32) -> Vec3 {
+        Vec3(self.0 + rhs, self.1 + rhs, self.2 + rhs)
     }
 }
 

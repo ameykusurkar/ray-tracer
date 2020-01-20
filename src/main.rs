@@ -57,8 +57,12 @@ fn create_file_content(height: i32, width: i32) -> String {
 }
 
 fn color(ray: &Ray, world: &HittableList) -> Vec3 {
-    match world.hit(ray, 0.0..std::f32::MAX) {
-        Some(hit_record) => 0.5 * (hit_record.normal + 1.0),
+    // Start t_range at non-zero value to prevent self-intersection
+    match world.hit(ray, 0.001..std::f32::MAX) {
+        Some(hit_record) => {
+            let dir = hit_record.normal + Vec3::random_in_unit_sphere();
+            0.5 * color(&Ray {origin: hit_record.intersection, dir}, &world)
+        },
         None => {
             let unit_dir = ray.dir.normalize();
             let t = 0.5 * (unit_dir.1 + 1.0);
@@ -68,5 +72,5 @@ fn color(ray: &Ray, world: &HittableList) -> Vec3 {
 }
 
 fn to_rgb(val: f32) -> u8 {
-    (255.0 * val) as u8
+    (255.0 * val.sqrt()) as u8
 }

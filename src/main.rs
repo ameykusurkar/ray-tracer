@@ -5,10 +5,12 @@ use std::io::Write;
 mod vec3;
 mod ray;
 mod hittable;
+mod camera;
 
 use vec3::Vec3;
 use ray::Ray;
 use hittable::{Hittable, Sphere, HittableList};
+use camera::Camera;
 
 fn main() -> Result<(), std::io::Error> {
     let width = 200;
@@ -28,23 +30,18 @@ fn create_file_content(height: i32, width: i32) -> String {
 
     result.push_str(&format!("P3\n{} {}\n255\n", width, height));
 
-    let bottom_left = Vec3(-2.0, -1.0, -1.0);
-    let horizontal = Vec3(4.0, 0.0, 0.0);
-    let vertical = Vec3(0.0, 2.0, 0.0);
-    let origin = Vec3(0.0, 0.0, 0.0);
-
     let mut world = HittableList {hittables: Vec::new()};
     world.hittables.push(Sphere {center: Vec3(0.0, 0.0, -1.0), radius: 0.5});
     world.hittables.push(Sphere {center: Vec3(0.0, -100.5, -1.0), radius: 100.0});
+
+    let camera = Camera::new();
 
     for i in (0..height).rev() {
         for j in 0..width {
             let x = j as f32 / width as f32;
             let y = i as f32 / height as f32;
 
-            let dir = bottom_left + (x * horizontal) + (y * vertical);
-            // TODO: Normalise the ray direction?
-            let ray = Ray {origin, dir};
+            let ray = camera.get_ray(x, y);
             let col = color(&ray, &world);
 
             result.push_str(

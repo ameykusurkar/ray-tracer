@@ -46,6 +46,16 @@ fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
         radius: 100.0,
         material: Lambertian(Vec3(0.8, 0.8, 0.0)),
     });
+    world.hittables.push(Sphere {
+        center: Vec3(-1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: Metal(Vec3(0.8, 0.8, 0.8)),
+    });
+    world.hittables.push(Sphere {
+        center: Vec3(1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: Metal(Vec3(0.8, 0.6, 0.2)),
+    });
 
     let camera = Camera::new();
     let mut rng = rand::thread_rng();
@@ -58,7 +68,7 @@ fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
                 let y = (i as f32 + rng.gen::<f32>())/ height as f32;
 
                 let ray = camera.get_ray(x, y);
-                col = col + color(&ray, &world);
+                col = col + color(&ray, &world, 50);
             }
 
             col = col / (num_samples as f32);
@@ -72,19 +82,23 @@ fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
     result
 }
 
-fn color(ray: &Ray, world: &HittableList) -> Vec3 {
+fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
+    if depth <= 0 { return background_color(&ray) };
+
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
             let (new_ray, attenuation) = hit_record.material.scatter(ray, &hit_record);
-            attenuation * color(&new_ray, &world)
+            attenuation * color(&new_ray, &world, depth - 1)
         },
-        None => {
-            let unit_dir = ray.dir.normalize();
-            let t = 0.5 * (unit_dir.1 + 1.0);
-            (1.0 - t) * Vec3(1.0, 1.0, 1.0) + t * Vec3(0.5, 0.7, 1.0)
-        },
+        None => background_color(ray),
     }
+}
+
+fn background_color(ray: &Ray) -> Vec3 {
+    let unit_dir = ray.dir.normalize();
+    let t = 0.5 * (unit_dir.1 + 1.0);
+    (1.0 - t) * Vec3(1.0, 1.0, 1.0) + t * Vec3(0.5, 0.7, 1.0)
 }
 
 fn to_rgb(val: f32) -> u8 {

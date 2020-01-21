@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 use std::io::Write;
+use rand::Rng;
 
 mod vec3;
 mod ray;
@@ -15,8 +16,9 @@ use camera::Camera;
 fn main() -> Result<(), std::io::Error> {
     let width = 200;
     let height = 100;
+    let num_samples = 50;
 
-    let content = create_file_content(height, width);
+    let content = create_file_content(height, width, num_samples);
 
     let path = Path::new("output.ppm");
     let mut file = File::create(&path)?;
@@ -25,7 +27,7 @@ fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn create_file_content(height: i32, width: i32) -> String {
+fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
     let mut result = String::new();
 
     result.push_str(&format!("P3\n{} {}\n255\n", width, height));
@@ -35,14 +37,20 @@ fn create_file_content(height: i32, width: i32) -> String {
     world.hittables.push(Sphere {center: Vec3(0.0, -100.5, -1.0), radius: 100.0});
 
     let camera = Camera::new();
+    let mut rng = rand::thread_rng();
 
     for i in (0..height).rev() {
         for j in 0..width {
-            let x = j as f32 / width as f32;
-            let y = i as f32 / height as f32;
+            let mut col = Vec3(0.0, 0.0, 0.0);
+            for _ in 0..num_samples {
+                let x = (j as f32 + rng.gen::<f32>()) / width as f32;
+                let y = (i as f32 + rng.gen::<f32>())/ height as f32;
 
-            let ray = camera.get_ray(x, y);
-            let col = color(&ray, &world);
+                let ray = camera.get_ray(x, y);
+                col = col + color(&ray, &world);
+            }
+
+            col = col / (num_samples as f32);
 
             result.push_str(
                 &format!("{} {} {}\n", to_rgb(col.0), to_rgb(col.1), to_rgb(col.2))

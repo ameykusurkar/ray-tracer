@@ -7,11 +7,14 @@ mod vec3;
 mod ray;
 mod hittable;
 mod camera;
+mod material;
 
 use vec3::Vec3;
 use ray::Ray;
 use hittable::{Hittable, Sphere, HittableList};
 use camera::Camera;
+use material::Material;
+use Material::*;
 
 fn main() -> Result<(), std::io::Error> {
     let width = 200;
@@ -33,8 +36,16 @@ fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
     result.push_str(&format!("P3\n{} {}\n255\n", width, height));
 
     let mut world = HittableList {hittables: Vec::new()};
-    world.hittables.push(Sphere {center: Vec3(0.0, 0.0, -1.0), radius: 0.5});
-    world.hittables.push(Sphere {center: Vec3(0.0, -100.5, -1.0), radius: 100.0});
+    world.hittables.push(Sphere {
+        center: Vec3(0.0, 0.0, -1.0),
+        radius: 0.5,
+        material: Lambertian(Vec3(0.8, 0.3, 0.3)),
+    });
+    world.hittables.push(Sphere {
+        center: Vec3(0.0, -100.5, -1.0),
+        radius: 100.0,
+        material: Lambertian(Vec3(0.8, 0.8, 0.0)),
+    });
 
     let camera = Camera::new();
     let mut rng = rand::thread_rng();
@@ -65,8 +76,8 @@ fn color(ray: &Ray, world: &HittableList) -> Vec3 {
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
-            let dir = hit_record.normal + Vec3::random_in_unit_sphere();
-            0.5 * color(&Ray {origin: hit_record.intersection, dir}, &world)
+            let (new_ray, attenuation) = hit_record.material.scatter(ray, &hit_record);
+            attenuation * color(&new_ray, &world)
         },
         None => {
             let unit_dir = ray.dir.normalize();

@@ -40,14 +40,14 @@ impl Hittable for Sphere {
             let t = (-b - discriminant.sqrt()) / a;
             if t_range.start < t && t < t_range.end {
                 let intersection = ray.at_param(t);
-                let normal = (intersection - self.center).normalize();
+                let normal = (intersection - self.center) / self.radius;
                 return Some(HitRecord {intersection, normal, t, material: self.material});
             }
 
             let t = (-b + discriminant.sqrt()) / a;
             if t_range.start < t && t < t_range.end {
                 let intersection = ray.at_param(t);
-                let normal = (intersection - self.center).normalize();
+                let normal = (intersection - self.center) / self.radius;
                 return Some(HitRecord {intersection, normal, t, material: self.material});
             }
         }

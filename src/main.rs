@@ -49,12 +49,12 @@ fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
     world.hittables.push(Sphere {
         center: Vec3(-1.0, 0.0, -1.0),
         radius: 0.5,
-        material: Metal(Vec3(0.8, 0.8, 0.8)),
+        material: Metal(Vec3(0.8, 0.8, 0.8), 0.3),
     });
     world.hittables.push(Sphere {
         center: Vec3(1.0, 0.0, -1.0),
         radius: 0.5,
-        material: Metal(Vec3(0.8, 0.6, 0.2)),
+        material: Metal(Vec3(0.8, 0.6, 0.2), 1.0),
     });
 
     let camera = Camera::new();
@@ -88,8 +88,12 @@ fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
-            let (new_ray, attenuation) = hit_record.material.scatter(ray, &hit_record);
-            attenuation * color(&new_ray, &world, depth - 1)
+            match hit_record.material.scatter(ray, &hit_record) {
+                Some((new_ray, attenuation)) =>  {
+                    attenuation * color(&new_ray, &world, depth - 1)
+                },
+                None => Vec3(0.0, 0.0, 0.0),
+            }
         },
         None => background_color(ray),
     }

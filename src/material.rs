@@ -5,26 +5,29 @@ use crate::hittable::HitRecord;
 #[derive(Copy, Clone)]
 pub enum Material {
     Lambertian(Vec3),
-    Metal(Vec3),
+    Metal(Vec3, f32),
 }
 
 impl Material {
-    pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> (Ray, Vec3) {
+    pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
         match self {
             Material::Lambertian(albedo) => {
                 let ray = Ray {
                     origin: hit_record.intersection,
                     dir: hit_record.normal + Vec3::random_in_unit_sphere(),
                 };
-                (ray, *albedo)
+                Some((ray, *albedo))
             }
-            // TODO: Implement fuzziness
-            Material::Metal(albedo) => {
-                let ray = Ray {
-                    origin: hit_record.intersection,
-                    dir: reflect(ray.dir.normalize(), hit_record.normal),
-                };
-                (ray, *albedo)
+            Material::Metal(albedo, fuzz) => {
+                let reflected = reflect(ray.dir.normalize(), hit_record.normal);
+                let dir = reflected + *fuzz * Vec3::random_in_unit_sphere();
+                if dir.dot(hit_record.normal) > 0.0 {
+                    let ray = Ray { origin: hit_record.intersection, dir };
+                    Some((ray, *albedo))
+                } else {
+                    // The ray has scattered below the surface
+                    None
+                }
             }
         }
     }

@@ -17,6 +17,14 @@ impl Vec3 {
         (self.0 * rhs.0) + (self.1 * rhs.1) + (self.2 * rhs.2)
     }
 
+    pub fn cross(self, rhs: Self) -> Vec3 {
+        Vec3(
+            self.1 * rhs.2 - self.2 * rhs.1,
+            self.2 * rhs.0 - self.0 * rhs.2,
+            self.0 * rhs.1 - self.1 * rhs.0,
+        )
+    }
+
     pub fn random_in_unit_sphere() -> Self {
         loop {
             let v = (2.0 * Self::random()) - 1.0;

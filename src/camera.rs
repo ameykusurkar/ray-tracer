@@ -9,15 +9,25 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(vfov: f32, aspect_ratio: f32) -> Self {
+    pub fn new(look_from: Vec3, look_at: Vec3, upward: Vec3,
+               vfov: f32, aspect_ratio: f32) -> Self {
+        // The screen will be a plane orthogonal to the direction we are looking
+        // in, with the point we are looking from as the origin. `-w` is the unit
+        // vector in the direction we are looking, and `u`, `v` are the pair of
+        // unit vectors that define the horizontal and vertical directions in the
+        // "looking plane" respectively.
+        let w = (look_from - look_at).normalize();
+        let u = upward.cross(w).normalize();
+        let v = w.cross(u);
+
         let half_height = (vfov / 2.0).tan();
         let half_width = aspect_ratio * half_height;
 
         Camera {
-            bottom_left: Vec3(-half_width, -half_height, -1.0),
-            horizontal: Vec3(2.0 * half_width, 0.0, 0.0),
-            vertical: Vec3(0.0, 2.0 * half_height, 0.0),
-            origin: Vec3(0.0, 0.0, 0.0),
+            bottom_left: look_from - half_width * u - half_height * v - w,
+            horizontal: 2.0 * half_width * u,
+            vertical: 2.0 * half_height * v,
+            origin: look_from,
         }
     }
 
@@ -25,7 +35,7 @@ impl Camera {
         // TODO: Normalise the ray direction?
         Ray {
             origin: self.origin,
-            dir: self.bottom_left + u * self.horizontal + v * self.vertical
+            dir: self.bottom_left + u * self.horizontal + v * self.vertical - self.origin,
         }
     }
 }

@@ -63,9 +63,13 @@ fn create_file_content(height: i32, width: i32, num_samples: i32) -> String {
         material: Metal(Vec3(0.8, 0.6, 0.2), 0.0),
     });
 
+    let look_from = Vec3(-2.0, 2.0, 1.0);
+    let look_at = Vec3(0.0, 0.0, -1.0);
+    let upward = Vec3(0.0, 1.0, 0.0);
     let aspect_ratio = (width as f32) / (height as f32);
-    let vfov = std::f32::consts::PI / 2.0;
-    let camera = Camera::new(vfov, aspect_ratio);
+    let vfov = std::f32::consts::PI / 5.0;
+
+    let camera = Camera::new(look_from, look_at, upward, vfov, aspect_ratio);
     let mut rng = rand::thread_rng();
 
     for i in (0..height).rev() {

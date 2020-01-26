@@ -9,7 +9,7 @@ impl Vec3 {
         self / self.magnitude()
     }
 
-    fn magnitude(self) -> f32 {
+    pub fn magnitude(self) -> f32 {
         self.dot(self).sqrt()
     }
 
@@ -28,6 +28,16 @@ impl Vec3 {
     pub fn random_in_unit_sphere() -> Self {
         loop {
             let v = (2.0 * Self::random()) - 1.0;
+            if v.dot(v) < 1.0 {
+                return v;
+            }
+        }
+    }
+
+    pub fn random_in_unit_disc() -> Self {
+        let mut rng = rand::thread_rng();
+        loop {
+            let v = 2.0 * Vec3(rng.gen(), rng.gen(), 0.0) - Vec3(1.0, 1.0, 0.0);
             if v.dot(v) < 1.0 {
                 return v;
             }

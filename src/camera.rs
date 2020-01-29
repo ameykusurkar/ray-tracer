@@ -15,9 +15,9 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(look_from: Vec3, look_at: Vec3, upward: Vec3,
-               vfov: f32, aspect_ratio: f32, aperture: f32) -> Self {
+               vfov: f32, aspect_ratio: f32,
+               aperture: f32, focal_dist: f32) -> Self {
         let look_dir_opposite = look_from - look_at;
-        let focal_dist = look_dir_opposite.magnitude();
 
         // The screen will be a plane orthogonal to the direction we are looking
         // in, with the point we are looking from as the origin. `-w` is the unit

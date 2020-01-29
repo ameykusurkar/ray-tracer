@@ -44,7 +44,7 @@ impl Vec3 {
         }
     }
 
-    fn random() -> Self {
+    pub fn random() -> Self {
         let mut rng = rand::thread_rng();
         Vec3(rng.gen(), rng.gen(), rng.gen())
     }

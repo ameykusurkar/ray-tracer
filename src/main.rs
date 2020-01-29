@@ -17,9 +17,9 @@ use material::Material;
 use Material::*;
 
 fn main() -> Result<(), std::io::Error> {
-    let width = 200;
-    let height = 100;
-    let num_samples = 50;
+    let width = 1200;
+    let height = 800;
+    let num_samples = 10;
 
     let image = generate_image(height, width, num_samples);
     write_to_ppm(&image, height)?;
@@ -32,14 +32,16 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
 
     let world = populate_world();
 
-    let look_from = Vec3(3.0, 3.0, 2.0);
-    let look_at = Vec3(0.0, 0.0, -1.0);
+    let look_from = Vec3(13.0, 2.0, 3.0);
+    let look_at = Vec3(0.0, 0.0, 0.0);
     let upward = Vec3(0.0, 1.0, 0.0);
     let aspect_ratio = (width as f32) / (height as f32);
-    let vfov = std::f32::consts::PI / 10.0;
-    let aperture = 1.0;
+    let vfov = std::f32::consts::PI / 9.0;
+    let aperture = 0.1;
+    let focal_dist = 10.0;
 
-    let camera = Camera::new(look_from, look_at, upward, vfov, aspect_ratio, aperture);
+    let camera = Camera::new(look_from, look_at, upward,
+                             vfov, aspect_ratio, aperture, focal_dist);
     let mut rng = rand::thread_rng();
 
     for i in (0..height).rev() {
@@ -89,33 +91,57 @@ fn populate_world() -> HittableList {
     let mut world = HittableList {hittables: Vec::new()};
 
     world.hittables.push(Sphere {
-        center: Vec3(0.0, 0.0, -1.0),
-        radius: 0.5,
-        material: Lambertian(Vec3(0.1, 0.2, 0.5)),
+        center: Vec3(0.0, -1000.0, 0.0),
+        radius: 1000.0,
+        material: Lambertian(Vec3(0.5, 0.5, 0.5)),
+    });
+
+    let mut rng = rand::thread_rng();
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let center = Vec3(a as f32 + 0.9 * rng.gen::<f32>(), 0.2, b as f32 + 0.9 * rng.gen::<f32>());
+
+            if (center - Vec3(4.0, 0.2, 0.0)).magnitude() > 0.9 {
+                world.hittables.push(Sphere {
+                    center,
+                    radius: 0.2,
+                    material: random_material(),
+                });
+            }
+        }
+    }
+
+    world.hittables.push(Sphere {
+        center: Vec3(-4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Lambertian(Vec3(0.4, 0.2, 0.1)),
     });
     world.hittables.push(Sphere {
-        center: Vec3(0.0, -100.5, -1.0),
-        radius: 100.0,
-        material: Lambertian(Vec3(0.8, 0.8, 0.0)),
-    });
-    world.hittables.push(Sphere {
-        center: Vec3(-1.0, 0.0, -1.0),
-        radius: 0.5,
+        center: Vec3(0.0, 1.0, 0.0),
+        radius: 1.0,
         material: Dielectric(1.5),
     });
-    // Negative radius to make the sphere look hollow
     world.hittables.push(Sphere {
-        center: Vec3(-1.0, 0.0, -1.0),
-        radius: -0.45,
-        material: Dielectric(1.5),
-    });
-    world.hittables.push(Sphere {
-        center: Vec3(1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: Metal(Vec3(0.8, 0.6, 0.2), 0.0),
+        center: Vec3(4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Metal(Vec3(0.7, 0.6, 0.5), 0.0),
     });
 
     world
+}
+
+fn random_material() -> Material {
+    let mut rng = rand::thread_rng();
+    let choice = rng.gen::<f32>();
+
+    if choice < 0.8 {
+        Lambertian(Vec3::random() * Vec3::random())
+    } else if choice < 0.95 {
+        Metal(0.5 * (Vec3::random() + 1.0), 0.5 * rng.gen::<f32>())
+    } else {
+        Dielectric(1.5)
+    }
 }
 
 fn write_to_ppm(image: &Vec<Vec3>, height: i32) -> Result<(), std::io::Error> {

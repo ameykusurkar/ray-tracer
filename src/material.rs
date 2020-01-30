@@ -47,10 +47,8 @@ impl Material {
                 let should_refract = rand::thread_rng().gen::<f32>() > reflect_prob;
 
                 let dir = if should_refract {
-                    match refract(incident, outward_normal, refract_ratio) {
-                        Some(v) => v,
-                        None => reflect(incident, outward_normal),
-                    }
+                    refract(incident, outward_normal, refract_ratio).
+                        unwrap_or_else(|| reflect(incident, outward_normal))
                 } else {
                     reflect(incident, outward_normal)
                 };

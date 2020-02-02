@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Write;
 use rand::Rng;
+use indicatif::ProgressBar;
 
 mod vec3;
 mod ray;
@@ -44,6 +45,9 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
                              vfov, aspect_ratio, aperture, focal_dist);
     let mut rng = rand::thread_rng();
 
+    let mut count = 0;
+    let bar = ProgressBar::new(100);
+
     for i in (0..height).rev() {
         for j in 0..width {
             let mut col = Vec3(0.0, 0.0, 0.0);
@@ -58,8 +62,14 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
             col = col / (num_samples as f32);
 
             pixels.push(col);
+
+            count += 1;
+            let section = height * width / 100;
+            if count % section == 0 { bar.inc(1) }
         }
     }
+
+    bar.finish();
 
     pixels
 }

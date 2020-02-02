@@ -9,6 +9,7 @@ pub enum Material {
     Lambertian(Vec3),
     Metal(Vec3, f32),
     Dielectric(f32),
+    Light,
 }
 
 impl Material {
@@ -56,6 +57,14 @@ impl Material {
                 let ray = Ray { origin: hit_record.intersection, dir };
                 Some((ray, Vec3(1.0, 1.0, 1.0)))
             }
+            Material::Light => None,
+        }
+    }
+
+    pub fn emit(&self) -> Vec3 {
+        match self {
+            Material::Light => Vec3(1.0, 1.0, 1.0),
+            _ => Vec3(0.0, 0.0, 0.0),
         }
     }
 }

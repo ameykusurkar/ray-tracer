@@ -70,21 +70,21 @@ fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
-            match hit_record.material.scatter(ray, &hit_record) {
+            let scattered = match hit_record.material.scatter(ray, &hit_record) {
                 Some((new_ray, attenuation)) =>  {
                     attenuation * color(&new_ray, &world, depth - 1)
                 },
                 None => Vec3(0.0, 0.0, 0.0),
-            }
+            };
+
+            hit_record.material.emit() + scattered
         },
         None => background_color(ray),
     }
 }
 
-fn background_color(ray: &Ray) -> Vec3 {
-    let unit_dir = ray.dir.normalize();
-    let t = 0.5 * (unit_dir.1 + 1.0);
-    (1.0 - t) * Vec3(1.0, 1.0, 1.0) + t * Vec3(0.5, 0.7, 1.0)
+fn background_color(_ray: &Ray) -> Vec3 {
+    Vec3(0.0, 0.0, 0.0)
 }
 
 fn populate_world() -> HittableList {
@@ -128,16 +128,33 @@ fn populate_world() -> HittableList {
         material: Metal(Vec3(0.7, 0.6, 0.5), 0.0),
     });
 
+    world.hittables.append(&mut generate_lights());
+
     world
+}
+
+fn generate_lights() -> Vec<Sphere> {
+    let mut lights = Vec::new();
+    for i in (-8..=8).step_by(4) {
+        for j in (-8..=8).step_by(4) {
+            lights.push(Sphere {
+                center: Vec3(i as f32, 4.0, j as f32),
+                radius: 1.0,
+                material: Light,
+            });
+        }
+    }
+
+    lights
 }
 
 fn random_material() -> Material {
     let mut rng = rand::thread_rng();
     let choice = rng.gen::<f32>();
 
-    if choice < 0.8 {
+    if choice < 0.5 {
         Lambertian(Vec3::random() * Vec3::random())
-    } else if choice < 0.95 {
+    } else if choice < 0.75 {
         Metal(0.5 * (Vec3::random() + 1.0), 0.5 * rng.gen::<f32>())
     } else {
         Dielectric(1.5)

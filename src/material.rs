@@ -3,10 +3,11 @@ use rand::Rng;
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::hittable::HitRecord;
+use crate::texture::Texture;
 
 #[derive(Copy, Clone)]
 pub enum Material {
-    Lambertian(Vec3),
+    Lambertian(Texture),
     Metal(Vec3, f32),
     Dielectric(f32),
     Light,
@@ -15,12 +16,12 @@ pub enum Material {
 impl Material {
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
         match self {
-            Material::Lambertian(albedo) => {
+            Material::Lambertian(texture) => {
                 let ray = Ray {
                     origin: hit_record.intersection,
                     dir: hit_record.normal + Vec3::random_in_unit_sphere(),
                 };
-                Some((ray, *albedo))
+                Some((ray, texture.value_at(hit_record.intersection)))
             }
             Material::Metal(albedo, fuzz) => {
                 let reflected = reflect(ray.dir.normalize(), hit_record.normal);

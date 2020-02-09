@@ -5,6 +5,14 @@ use rand::Rng;
 pub struct Vec3(pub f32, pub f32, pub f32);
 
 impl Vec3 {
+    pub fn map(self, f: impl Fn(f32) -> f32) -> Self {
+        Vec3(f(self.0), f(self.1), f(self.2))
+    }
+
+    pub fn reduce(self, f: impl Fn(f32, f32) -> f32) -> f32 {
+        f(f(self.0, self.1), self.2)
+    }
+
     pub fn normalize(self) -> Self {
         self / self.magnitude()
     }

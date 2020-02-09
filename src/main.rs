@@ -9,6 +9,7 @@ mod ray;
 mod hittable;
 mod camera;
 mod material;
+mod texture;
 
 use vec3::Vec3;
 use ray::Ray;
@@ -16,6 +17,8 @@ use hittable::{Hittable, Sphere, HittableList};
 use camera::Camera;
 use material::Material;
 use Material::*;
+use texture::Texture;
+use Texture::*;
 
 fn main() -> Result<(), std::io::Error> {
     let width = 1200;
@@ -103,7 +106,9 @@ fn populate_world() -> HittableList {
     world.hittables.push(Sphere {
         center: Vec3(0.0, -1000.0, 0.0),
         radius: 1000.0,
-        material: Lambertian(Vec3(0.5, 0.5, 0.5)),
+        material: Lambertian(
+            Checkered(Vec3(0.0, 0.0, 0.0), Vec3(1.0, 1.0, 1.0))
+        ),
     });
 
     let mut rng = rand::thread_rng();
@@ -125,7 +130,7 @@ fn populate_world() -> HittableList {
     world.hittables.push(Sphere {
         center: Vec3(-4.0, 1.0, 0.0),
         radius: 1.0,
-        material: Lambertian(Vec3(0.4, 0.2, 0.1)),
+        material: Lambertian(Constant(Vec3(0.4, 0.2, 0.1))),
     });
     world.hittables.push(Sphere {
         center: Vec3(0.0, 1.0, 0.0),
@@ -163,7 +168,7 @@ fn random_material() -> Material {
     let choice = rng.gen::<f32>();
 
     if choice < 0.5 {
-        Lambertian(Vec3::random() * Vec3::random())
+        Lambertian(Constant(Vec3::random() * Vec3::random()))
     } else if choice < 0.75 {
         Metal(0.5 * (Vec3::random() + 1.0), 0.5 * rng.gen::<f32>())
     } else {

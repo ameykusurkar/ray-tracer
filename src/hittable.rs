@@ -37,18 +37,17 @@ impl Hittable for Sphere {
         let discriminant = b * b - a * c;
 
         if discriminant > 0.0 {
-            let t = (-b - discriminant.sqrt()) / a;
-            if t_range.start < t && t < t_range.end {
-                let intersection = ray.at_param(t);
-                let normal = (intersection - self.center) / self.radius;
-                return Some(HitRecord {intersection, normal, t, material: self.material});
-            }
+            let candidate_ts = [
+                (-b - discriminant.sqrt()) / a,
+                (-b + discriminant.sqrt()) / a,
+            ];
 
-            let t = (-b + discriminant.sqrt()) / a;
-            if t_range.start < t && t < t_range.end {
-                let intersection = ray.at_param(t);
-                let normal = (intersection - self.center) / self.radius;
-                return Some(HitRecord {intersection, normal, t, material: self.material});
+            for &t in candidate_ts.iter() {
+                if t_range.start < t && t < t_range.end {
+                    let intersection = ray.at_param(t);
+                    let normal = (intersection - self.center) / self.radius;
+                    return Some(HitRecord {intersection, normal, t, material: self.material});
+                }
             }
         }
 

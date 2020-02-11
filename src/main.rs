@@ -1,8 +1,6 @@
-use std::fs::File;
-use std::path::Path;
-use std::io::Write;
 use rand::Rng;
 use indicatif::ProgressBar;
+use image::error::ImageError;
 
 mod vec3;
 mod ray;
@@ -20,13 +18,17 @@ use Material::*;
 use texture::Texture;
 use Texture::*;
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<(), ImageError> {
     let width = 1200;
     let height = 800;
     let num_samples = 10;
 
     let image = generate_image(height, width, num_samples);
-    write_to_ppm(&image, height)?;
+
+    println!("Writing image to file...");
+    let start = std::time::Instant::now();
+    write_image(&image, height)?;
+    println!("Done! Took {:.2} seconds", start.elapsed().as_secs_f32());
 
     Ok(())
 }
@@ -176,18 +178,21 @@ fn random_material() -> Material {
     }
 }
 
-fn write_to_ppm(image: &Vec<Vec3>, height: i32) -> Result<(), std::io::Error> {
-    let path = Path::new("output.ppm");
-    let mut file = File::create(&path)?;
-
+fn write_image(image: &Vec<Vec3>, height: i32) -> Result<(), ImageError> {
     let width = image.len() as i32 / height;
-
-    file.write(&format!("P3\n{} {}\n255\n", width, height).as_bytes())?;
+    let mut buffer = Vec::with_capacity((height * width * 3) as usize);
 
     for pixel in image {
-        let (r, g, b) = (to_rgb(pixel.0), to_rgb(pixel.1), to_rgb(pixel.2));
-        file.write(&format!("{} {} {}\n", r, g, b).as_bytes())?;
+        buffer.push(to_rgb(pixel.0));
+        buffer.push(to_rgb(pixel.1));
+        buffer.push(to_rgb(pixel.2));
     }
+
+    image::save_buffer("output.png",
+                       buffer.as_slice(),
+                       width as u32,
+                       height as u32,
+                       image::ColorType::Rgb8)?;
 
     Ok(())
 }

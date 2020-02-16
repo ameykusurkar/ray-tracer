@@ -24,12 +24,11 @@ fn main() -> Result<(), ImageError> {
     let height = 800;
     let num_samples = 10;
 
-    let image = generate_image(height, width, num_samples);
-
-    println!("Writing image to file...");
     let start = std::time::Instant::now();
+    let image = generate_image(height, width, num_samples);
+    println!("Generated image in {:.2} seconds", start.elapsed().as_secs_f32());
+
     write_image(&image, height)?;
-    println!("Done! Took {:.2} seconds", start.elapsed().as_secs_f32());
 
     Ok(())
 }

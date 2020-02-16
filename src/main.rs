@@ -34,8 +34,6 @@ fn main() -> Result<(), ImageError> {
 }
 
 fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
-    let mut pixels = Vec::new();
-
     let world = populate_world();
 
     let look_from = Vec3(13.0, 2.0, 3.0);
@@ -53,28 +51,37 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
     let mut count = 0;
     let bar = ProgressBar::new(100);
 
-    for i in (0..height).rev() {
-        for j in 0..width {
-            let mut col = Vec3(0.0, 0.0, 0.0);
-            for _ in 0..num_samples {
-                let x = (j as f32 + rng.gen::<f32>()) / width as f32;
-                let y = (i as f32 + rng.gen::<f32>())/ height as f32;
+    let pixels = generate_pixels(height, width, |i, j| {
+        let col_sum: Vec3 = (0..num_samples).map(|_| {
+            let x = (i as f32 + rng.gen::<f32>()) / width as f32;
+            let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
-                let ray = camera.get_ray(x, y);
-                col = col + color(&ray, &world, 50);
-            }
+            let ray = camera.get_ray(x, y);
+            color(&ray, &world, 50)
+        }).sum();
 
-            col = col / (num_samples as f32);
+        let col = col_sum / (num_samples as f32);
 
-            pixels.push(col);
+        count += 1;
+        let section = height * width / 100;
+        if count % section == 0 { bar.inc(1) }
 
-            count += 1;
-            let section = height * width / 100;
-            if count % section == 0 { bar.inc(1) }
-        }
-    }
+        col
+    });
 
     bar.finish();
+
+    pixels
+}
+
+fn generate_pixels(height: i32, width: i32, mut f: impl FnMut(i32, i32) -> Vec3) -> Vec<Vec3> {
+    let mut pixels = Vec::with_capacity((height * width) as usize);
+
+    for j in (0..height).rev() {
+        for i in 0..width {
+            pixels.push(f(i, j));
+        }
+    }
 
     pixels
 }

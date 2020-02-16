@@ -58,6 +58,12 @@ impl Vec3 {
     }
 }
 
+impl std::iter::Sum for Vec3 {
+    fn sum<I>(iter: I) -> Self where I: Iterator<Item = Self> {
+        iter.fold(Vec3::default(), Add::add)
+    }
+}
+
 impl Add for Vec3 {
     type Output = Vec3;
 

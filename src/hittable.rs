@@ -3,9 +3,11 @@ use std::ops::Range;
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::material::Material;
+use crate::aabb::Aabb;
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord>;
+    fn bounding_box(&self) -> Aabb;
 }
 
 pub struct HitRecord {
@@ -53,6 +55,13 @@ impl Hittable for Sphere {
 
         None
     }
+
+    fn bounding_box(&self) -> Aabb {
+        Aabb {
+            min: self.center - self.radius,
+            max: self.center + self.radius
+        }
+    }
 }
 
 impl Hittable for HittableList {
@@ -68,5 +77,13 @@ impl Hittable for HittableList {
         }
 
         closest_hit
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        let first = self.hittables[0].bounding_box();
+
+        self.hittables.
+            iter().
+            fold(first, |a, h| Aabb::surrounding_box(a, h.bounding_box()))
     }
 }

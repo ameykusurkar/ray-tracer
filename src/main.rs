@@ -8,6 +8,7 @@ mod hittable;
 mod camera;
 mod material;
 mod texture;
+mod aabb;
 
 use vec3::Vec3;
 use ray::Ray;
@@ -17,6 +18,7 @@ use material::Material;
 use Material::*;
 use texture::Texture;
 use Texture::*;
+use aabb::Aabb;
 use rayon::prelude::*;
 
 fn main() -> Result<(), ImageError> {
@@ -60,7 +62,7 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
             let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
             let ray = camera.get_ray(x, y);
-            color(&ray, &world, 50)
+            color(&ray, &world, &world.bounding_box(), 50)
         }).sum();
 
         let col = col_sum / (num_samples as f32);
@@ -77,15 +79,17 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
     pixels
 }
 
-fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
+fn color(ray: &Ray, world: &HittableList, bb: &Aabb, depth: i32) -> Vec3 {
     if depth <= 0 { return background_color(&ray) };
+
+    if !bb.hit(&ray, 0.001, std::f32::MAX) { return background_color(&ray) };
 
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
             let scattered = match hit_record.material.scatter(ray, &hit_record) {
                 Some((new_ray, attenuation)) =>  {
-                    attenuation * color(&new_ray, &world, depth - 1)
+                    attenuation * color(&new_ray, &world, bb, depth - 1)
                 },
                 None => Vec3(0.0, 0.0, 0.0),
             };

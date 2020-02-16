@@ -13,6 +13,10 @@ impl Vec3 {
         f(f(self.0, self.1), self.2)
     }
 
+    pub fn zip_with(self, other: Vec3, f: impl Fn(f32, f32) -> f32) -> Self {
+        Vec3(f(self.0, other.0), f(self.1, other.1), f(self.2, other.2))
+    }
+
     pub fn normalize(self) -> Self {
         self / self.magnitude()
     }
@@ -61,6 +65,18 @@ impl Vec3 {
 impl std::iter::Sum for Vec3 {
     fn sum<I>(iter: I) -> Self where I: Iterator<Item = Self> {
         iter.fold(Vec3::default(), Add::add)
+    }
+}
+
+impl std::ops::Index<i32> for Vec3 {
+    type Output = f32;
+
+    fn index(&self, idx: i32) -> &Self::Output {
+        match idx % 3 {
+            0 => &self.0,
+            1 => &self.1,
+            _ => &self.2,
+        }
     }
 }
 

@@ -17,6 +17,7 @@ use material::Material;
 use Material::*;
 use texture::Texture;
 use Texture::*;
+use rayon::prelude::*;
 
 fn main() -> Result<(), ImageError> {
     let width = 1200;
@@ -46,12 +47,15 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
 
     let camera = Camera::new(look_from, look_at, upward,
                              vfov, aspect_ratio, aperture, focal_dist);
-    let mut rng = rand::thread_rng();
 
-    let mut count = 0;
+    let count = std::sync::atomic::AtomicI32::new(0);
     let bar = ProgressBar::new(100);
 
-    let pixels = generate_pixels(height, width, |i, j| {
+    let num_pixels = height * width;
+    let pixels = (0..num_pixels).into_par_iter().map(|n| {
+        let i = n % width;
+        let j = height - (n / width) - 1;
+        let mut rng = rand::thread_rng();
         let col_sum: Vec3 = (0..num_samples).map(|_| {
             let x = (i as f32 + rng.gen::<f32>()) / width as f32;
             let y = (j as f32 + rng.gen::<f32>()) / height as f32;
@@ -62,26 +66,14 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
 
         let col = col_sum / (num_samples as f32);
 
-        count += 1;
+        let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let section = height * width / 100;
-        if count % section == 0 { bar.inc(1) }
+        if (prev_count + 1) % section == 0 { bar.inc(1) }
 
         col
-    });
+    }).collect();
 
     bar.finish();
-
-    pixels
-}
-
-fn generate_pixels(height: i32, width: i32, mut f: impl FnMut(i32, i32) -> Vec3) -> Vec<Vec3> {
-    let mut pixels = Vec::with_capacity((height * width) as usize);
-
-    for j in (0..height).rev() {
-        for i in 0..width {
-            pixels.push(f(i, j));
-        }
-    }
 
     pixels
 }

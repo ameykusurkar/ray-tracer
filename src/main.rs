@@ -13,7 +13,6 @@ use camera::Camera;
 use hittable::{Hittable, HittableList, Sphere};
 use material::Material;
 use ray::Ray;
-use rayon::prelude::*;
 use texture::Texture;
 use vec3::Vec3;
 use Material::*;
@@ -31,12 +30,37 @@ fn main() -> Result<(), ImageError> {
         start.elapsed().as_secs_f32()
     );
 
-    write_image(&image, height, "output.png")?;
+    write_image(image.buffer(), height, "output.png")?;
 
     Ok(())
 }
 
-fn generate_image(height: usize, width: usize, num_samples: u32) -> Vec<Vec3> {
+struct ImageBuilder {
+    buffer: Vec<Vec3>,
+    num_samples: u32,
+    width: usize,
+}
+
+impl ImageBuilder {
+    fn new(height: usize, width: usize) -> Self {
+        Self {
+            buffer: vec![Vec3::default(); height * width],
+            num_samples: 0,
+            width,
+        }
+    }
+
+    fn update(&mut self, x: usize, y: usize, col: Vec3) {
+        let i = y * self.width + x;
+        self.buffer[i] = col;
+    }
+
+    fn buffer(&self) -> &[Vec3] {
+        &self.buffer
+    }
+}
+
+fn generate_image(height: usize, width: usize, num_samples: u32) -> ImageBuilder {
     let world = populate_world();
 
     let look_from = Vec3(13.0, 2.0, 3.0);
@@ -60,38 +84,42 @@ fn generate_image(height: usize, width: usize, num_samples: u32) -> Vec<Vec3> {
     let count = std::sync::atomic::AtomicU32::new(0);
     let bar = ProgressBar::new(100);
 
+    let mut builder = ImageBuilder::new(height, width);
+
     let num_pixels = height * width;
-    let pixels = (0..num_pixels)
-        .into_par_iter()
-        .map(|n| {
-            let i = n % width;
-            let j = height - (n / width) - 1;
-            let mut rng = rand::thread_rng();
-            let col_sum: Vec3 = (0..num_samples)
-                .map(|_| {
-                    let x = (i as f32 + rng.gen::<f32>()) / width as f32;
-                    let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
-                    let ray = camera.get_ray(x, y);
-                    color(&ray, &world, 50)
-                })
-                .sum();
+    (0..num_pixels).for_each(|n| {
+        let i = n % width;
+        let j = height - (n / width) - 1;
+        let mut rng = rand::thread_rng();
+        let col_sum: Vec3 = (0..num_samples)
+            .map(|_| {
+                let x = (i as f32 + rng.gen::<f32>()) / width as f32;
+                let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
-            let col = col_sum / (num_samples as f32);
+                let ray = camera.get_ray(x, y);
+                color(&ray, &world, 50)
+            })
+            .sum();
 
-            let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            let section = height * width / 100;
-            if (prev_count + 1) % section as u32 == 0 {
-                bar.inc(1)
-            }
+        let col = col_sum / (num_samples as f32);
 
-            col
-        })
-        .collect();
+        builder.update(i, height - j - 1, col);
+
+        let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        let section = num_pixels / 100;
+        if (prev_count + 1) % section as u32 == 0 {
+            bar.inc(1)
+        }
+        if (prev_count + 1) % (num_pixels / 10) as u32 == 0 {
+            write_image(builder.buffer(), height, "output.png").unwrap();
+        }
+    });
 
     bar.finish();
 
-    pixels
+    builder
 }
 
 fn color(ray: &Ray, world: &HittableList, depth: u32) -> Vec3 {
@@ -197,7 +225,7 @@ fn random_material() -> Material {
     }
 }
 
-fn write_image(image: &Vec<Vec3>, height: usize, path: &str) -> Result<(), ImageError> {
+fn write_image(image: &[Vec3], height: usize, path: &str) -> Result<(), ImageError> {
     let width = image.len() / height;
     let mut buffer = Vec::with_capacity((height * width * 3) as usize);
 

@@ -36,7 +36,7 @@ fn main() -> Result<(), ImageError> {
     Ok(())
 }
 
-fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
+fn generate_image(height: usize, width: usize, num_samples: u32) -> Vec<Vec3> {
     let world = populate_world();
 
     let look_from = Vec3(13.0, 2.0, 3.0);
@@ -57,7 +57,7 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
         focal_dist,
     );
 
-    let count = std::sync::atomic::AtomicI32::new(0);
+    let count = std::sync::atomic::AtomicU32::new(0);
     let bar = ProgressBar::new(100);
 
     let num_pixels = height * width;
@@ -81,7 +81,7 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
 
             let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             let section = height * width / 100;
-            if (prev_count + 1) % section == 0 {
+            if (prev_count + 1) % section as u32 == 0 {
                 bar.inc(1)
             }
 
@@ -94,8 +94,8 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
     pixels
 }
 
-fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
-    if depth <= 0 {
+fn color(ray: &Ray, world: &HittableList, depth: u32) -> Vec3 {
+    if depth == 0 {
         return background_color(&ray);
     };
 
@@ -197,8 +197,8 @@ fn random_material() -> Material {
     }
 }
 
-fn write_image(image: &Vec<Vec3>, height: i32, path: &str) -> Result<(), ImageError> {
-    let width = image.len() as i32 / height;
+fn write_image(image: &Vec<Vec3>, height: usize, path: &str) -> Result<(), ImageError> {
+    let width = image.len() / height;
     let mut buffer = Vec::with_capacity((height * width * 3) as usize);
 
     for pixel in image {

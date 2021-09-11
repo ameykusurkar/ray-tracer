@@ -1,5 +1,5 @@
-use std::ops::{Add, Sub, Mul, Div};
 use rand::Rng;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone, Default)]
 pub struct Vec3(pub f32, pub f32, pub f32);
@@ -63,7 +63,10 @@ impl Vec3 {
 }
 
 impl std::iter::Sum for Vec3 {
-    fn sum<I>(iter: I) -> Self where I: Iterator<Item = Self> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
         iter.fold(Vec3::default(), Add::add)
     }
 }

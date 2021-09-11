@@ -1,23 +1,23 @@
-use rand::Rng;
-use indicatif::ProgressBar;
 use image::error::ImageError;
+use indicatif::ProgressBar;
+use rand::Rng;
 
-mod vec3;
-mod ray;
-mod hittable;
 mod camera;
+mod hittable;
 mod material;
+mod ray;
 mod texture;
+mod vec3;
 
-use vec3::Vec3;
-use ray::Ray;
-use hittable::{Hittable, Sphere, HittableList};
 use camera::Camera;
+use hittable::{Hittable, HittableList, Sphere};
 use material::Material;
-use Material::*;
-use texture::Texture;
-use Texture::*;
+use ray::Ray;
 use rayon::prelude::*;
+use texture::Texture;
+use vec3::Vec3;
+use Material::*;
+use Texture::*;
 
 fn main() -> Result<(), ImageError> {
     let width = 1200;
@@ -26,7 +26,10 @@ fn main() -> Result<(), ImageError> {
 
     let start = std::time::Instant::now();
     let image = generate_image(height, width, num_samples);
-    println!("Generated image in {:.2} seconds", start.elapsed().as_secs_f32());
+    println!(
+        "Generated image in {:.2} seconds",
+        start.elapsed().as_secs_f32()
+    );
 
     write_image(&image, height)?;
 
@@ -44,33 +47,47 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
     let aperture = 0.1;
     let focal_dist = 10.0;
 
-    let camera = Camera::new(look_from, look_at, upward,
-                             vfov, aspect_ratio, aperture, focal_dist);
+    let camera = Camera::new(
+        look_from,
+        look_at,
+        upward,
+        vfov,
+        aspect_ratio,
+        aperture,
+        focal_dist,
+    );
 
     let count = std::sync::atomic::AtomicI32::new(0);
     let bar = ProgressBar::new(100);
 
     let num_pixels = height * width;
-    let pixels = (0..num_pixels).into_par_iter().map(|n| {
-        let i = n % width;
-        let j = height - (n / width) - 1;
-        let mut rng = rand::thread_rng();
-        let col_sum: Vec3 = (0..num_samples).map(|_| {
-            let x = (i as f32 + rng.gen::<f32>()) / width as f32;
-            let y = (j as f32 + rng.gen::<f32>()) / height as f32;
+    let pixels = (0..num_pixels)
+        .into_par_iter()
+        .map(|n| {
+            let i = n % width;
+            let j = height - (n / width) - 1;
+            let mut rng = rand::thread_rng();
+            let col_sum: Vec3 = (0..num_samples)
+                .map(|_| {
+                    let x = (i as f32 + rng.gen::<f32>()) / width as f32;
+                    let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
-            let ray = camera.get_ray(x, y);
-            color(&ray, &world, 50)
-        }).sum();
+                    let ray = camera.get_ray(x, y);
+                    color(&ray, &world, 50)
+                })
+                .sum();
 
-        let col = col_sum / (num_samples as f32);
+            let col = col_sum / (num_samples as f32);
 
-        let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let section = height * width / 100;
-        if (prev_count + 1) % section == 0 { bar.inc(1) }
+            let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let section = height * width / 100;
+            if (prev_count + 1) % section == 0 {
+                bar.inc(1)
+            }
 
-        col
-    }).collect();
+            col
+        })
+        .collect();
 
     bar.finish();
 
@@ -78,20 +95,20 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
 }
 
 fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
-    if depth <= 0 { return background_color(&ray) };
+    if depth <= 0 {
+        return background_color(&ray);
+    };
 
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
             let scattered = match hit_record.material.scatter(ray, &hit_record) {
-                Some((new_ray, attenuation)) =>  {
-                    attenuation * color(&new_ray, &world, depth - 1)
-                },
+                Some((new_ray, attenuation)) => attenuation * color(&new_ray, &world, depth - 1),
                 None => Vec3(0.0, 0.0, 0.0),
             };
 
             hit_record.material.emit() + scattered
-        },
+        }
         None => background_color(ray),
     }
 }
@@ -101,21 +118,25 @@ fn background_color(_ray: &Ray) -> Vec3 {
 }
 
 fn populate_world() -> HittableList {
-    let mut world = HittableList {hittables: Vec::new()};
+    let mut world = HittableList {
+        hittables: Vec::new(),
+    };
 
     world.hittables.push(Sphere {
         center: Vec3(0.0, -1000.0, 0.0),
         radius: 1000.0,
-        material: Lambertian(
-            Checkered(Vec3(0.0, 0.0, 0.0), Vec3(1.0, 1.0, 1.0))
-        ),
+        material: Lambertian(Checkered(Vec3(0.0, 0.0, 0.0), Vec3(1.0, 1.0, 1.0))),
     });
 
     let mut rng = rand::thread_rng();
 
     for a in -11..11 {
         for b in -11..11 {
-            let center = Vec3(a as f32 + 0.9 * rng.gen::<f32>(), 0.2, b as f32 + 0.9 * rng.gen::<f32>());
+            let center = Vec3(
+                a as f32 + 0.9 * rng.gen::<f32>(),
+                0.2,
+                b as f32 + 0.9 * rng.gen::<f32>(),
+            );
 
             if (center - Vec3(4.0, 0.2, 0.0)).magnitude() > 0.9 {
                 world.hittables.push(Sphere {
@@ -186,11 +207,13 @@ fn write_image(image: &Vec<Vec3>, height: i32) -> Result<(), ImageError> {
         buffer.push(to_rgb(pixel.2));
     }
 
-    image::save_buffer("output.png",
-                       buffer.as_slice(),
-                       width as u32,
-                       height as u32,
-                       image::ColorType::Rgb8)?;
+    image::save_buffer(
+        "output.png",
+        buffer.as_slice(),
+        width as u32,
+        height as u32,
+        image::ColorType::Rgb8,
+    )?;
 
     Ok(())
 }

@@ -12,7 +12,11 @@ impl Texture {
             Texture::Constant(col) => col,
             Texture::Checkered(col1, col2) => {
                 let sines = (10.0 * p).map(f32::sin).reduce(std::ops::Mul::mul);
-                if sines < 0.0 { col1 } else { col2 }
+                if sines < 0.0 {
+                    col1
+                } else {
+                    col2
+                }
             }
         }
     }

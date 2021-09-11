@@ -1,8 +1,8 @@
 use std::ops::Range;
 
-use crate::vec3::Vec3;
-use crate::ray::Ray;
 use crate::material::Material;
+use crate::ray::Ray;
+use crate::vec3::Vec3;
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord>;
@@ -23,7 +23,7 @@ pub struct Sphere {
 
 pub struct HittableList {
     // TODO: Allow this to be a vector of Hittables
-    pub hittables: Vec<Sphere>
+    pub hittables: Vec<Sphere>,
 }
 
 impl Hittable for Sphere {
@@ -46,7 +46,12 @@ impl Hittable for Sphere {
                 if t_range.start < t && t < t_range.end {
                     let intersection = ray.at_param(t);
                     let normal = (intersection - self.center) / self.radius;
-                    return Some(HitRecord {intersection, normal, t, material: self.material});
+                    return Some(HitRecord {
+                        intersection,
+                        normal,
+                        t,
+                        material: self.material,
+                    });
                 }
             }
         }

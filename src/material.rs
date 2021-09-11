@@ -1,9 +1,9 @@
 use rand::Rng;
 
-use crate::vec3::Vec3;
-use crate::ray::Ray;
 use crate::hittable::HitRecord;
+use crate::ray::Ray;
 use crate::texture::Texture;
+use crate::vec3::Vec3;
 
 #[derive(Copy, Clone)]
 pub enum Material {
@@ -27,7 +27,10 @@ impl Material {
                 let reflected = reflect(ray.dir.normalize(), hit_record.normal);
                 let dir = reflected + *fuzz * Vec3::random_in_unit_sphere();
                 if dir.dot(hit_record.normal) > 0.0 {
-                    let ray = Ray { origin: hit_record.intersection, dir };
+                    let ray = Ray {
+                        origin: hit_record.intersection,
+                        dir,
+                    };
                     Some((ray, *albedo))
                 } else {
                     // The ray has scattered below the surface
@@ -49,13 +52,16 @@ impl Material {
                 let should_refract = rand::thread_rng().gen::<f32>() > reflect_prob;
 
                 let dir = if should_refract {
-                    refract(incident, outward_normal, refract_ratio).
-                        unwrap_or_else(|| reflect(incident, outward_normal))
+                    refract(incident, outward_normal, refract_ratio)
+                        .unwrap_or_else(|| reflect(incident, outward_normal))
                 } else {
                     reflect(incident, outward_normal)
                 };
 
-                let ray = Ray { origin: hit_record.intersection, dir };
+                let ray = Ray {
+                    origin: hit_record.intersection,
+                    dir,
+                };
                 Some((ray, Vec3(1.0, 1.0, 1.0)))
             }
             Material::Light => None,

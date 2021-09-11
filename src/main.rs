@@ -31,7 +31,7 @@ fn main() -> Result<(), ImageError> {
         start.elapsed().as_secs_f32()
     );
 
-    write_image(&image, height)?;
+    write_image(&image, height, "output.png")?;
 
     Ok(())
 }
@@ -197,7 +197,7 @@ fn random_material() -> Material {
     }
 }
 
-fn write_image(image: &Vec<Vec3>, height: i32) -> Result<(), ImageError> {
+fn write_image(image: &Vec<Vec3>, height: i32, path: &str) -> Result<(), ImageError> {
     let width = image.len() as i32 / height;
     let mut buffer = Vec::with_capacity((height * width * 3) as usize);
 
@@ -207,12 +207,13 @@ fn write_image(image: &Vec<Vec3>, height: i32) -> Result<(), ImageError> {
         buffer.push(to_rgb(pixel.2));
     }
 
-    image::save_buffer(
-        "output.png",
+    image::save_buffer_with_format(
+        path,
         buffer.as_slice(),
         width as u32,
         height as u32,
         image::ColorType::Rgb8,
+        image::ImageFormat::Png,
     )?;
 
     Ok(())

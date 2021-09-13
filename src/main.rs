@@ -3,9 +3,11 @@ use indicatif::ProgressBar;
 use rand::Rng;
 
 mod camera;
+mod grid_iterator;
 mod hittable;
 mod material;
 mod ray;
+mod simple_grid_iterator;
 mod texture;
 mod vec3;
 
@@ -88,10 +90,11 @@ fn generate_image(height: usize, width: usize, num_samples: u32) -> ImageBuilder
 
     let num_pixels = height * width;
 
-    (0..num_pixels).for_each(|n| {
-        let i = n % width;
-        let j = height - (n / width) - 1;
-        let mut rng = rand::thread_rng();
+    let iter = grid_iterator::grid_iterator(width, height, 4, 4);
+
+    let mut rng = rand::thread_rng();
+
+    iter.for_each(|(i, j)| {
         let col_sum: Vec3 = (0..num_samples)
             .map(|_| {
                 let x = (i as f32 + rng.gen::<f32>()) / width as f32;

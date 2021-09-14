@@ -21,12 +21,20 @@ use Material::*;
 use Texture::*;
 
 fn main() -> Result<(), ImageError> {
-    let width = 1200;
-    let height = 800;
-    let num_samples = 10;
+    // let width = 1200;
+    // let height = 800;
+    // let num_samples = 10;
+    let width = 600;
+    let height = 400;
+    let num_samples = 100;
+    let depth = 50;
+    let camera = build_camera(width, height);
 
     let start = std::time::Instant::now();
-    let image = generate_image(height, width, num_samples);
+
+    let world = populate_world();
+
+    let image = generate_image(world, camera, height, width, num_samples, depth);
     println!(
         "Generated image in {:.2} seconds",
         start.elapsed().as_secs_f32()
@@ -39,7 +47,7 @@ fn main() -> Result<(), ImageError> {
 
 struct ImageBuilder {
     buffer: Vec<Vec3>,
-    num_samples: u32,
+    samples: Vec<u32>,
     width: usize,
 }
 
@@ -47,14 +55,18 @@ impl ImageBuilder {
     fn new(height: usize, width: usize) -> Self {
         Self {
             buffer: vec![Vec3::default(); height * width],
-            num_samples: 0,
+            samples: vec![0; height * width],
             width,
         }
     }
 
-    fn update(&mut self, x: usize, y: usize, col: Vec3) {
+    fn update(&mut self, x: usize, y: usize, col: Vec3, samples: u32) {
         let i = y * self.width + x;
-        self.buffer[i] = col;
+        let total_samples = self.samples[i] + samples;
+        let weighted_col = ((self.samples[i] as f32 * self.buffer[i]) + (samples as f32 * col))
+            / total_samples as f32;
+        self.buffer[i] = weighted_col;
+        self.samples[i] = total_samples;
     }
 
     fn buffer(&self) -> &[Vec3] {
@@ -62,27 +74,14 @@ impl ImageBuilder {
     }
 }
 
-fn generate_image(height: usize, width: usize, num_samples: u32) -> ImageBuilder {
-    let world = populate_world();
-
-    let look_from = Vec3(13.0, 2.0, 3.0);
-    let look_at = Vec3(0.0, 0.0, 0.0);
-    let upward = Vec3(0.0, 1.0, 0.0);
-    let aspect_ratio = (width as f32) / (height as f32);
-    let vfov = std::f32::consts::PI / 9.0;
-    let aperture = 0.1;
-    let focal_dist = 10.0;
-
-    let camera = Camera::new(
-        look_from,
-        look_at,
-        upward,
-        vfov,
-        aspect_ratio,
-        aperture,
-        focal_dist,
-    );
-
+fn generate_image(
+    world: HittableList,
+    camera: Camera,
+    height: usize,
+    width: usize,
+    num_samples: u32,
+    depth: u32,
+) -> ImageBuilder {
     let count = std::sync::atomic::AtomicU32::new(0);
     let bar = ProgressBar::new(100);
 
@@ -90,9 +89,9 @@ fn generate_image(height: usize, width: usize, num_samples: u32) -> ImageBuilder
 
     let num_pixels = height * width;
 
-    let iter = grid_iterator::grid_iterator(width, height, 4, 4);
-
     let mut rng = rand::thread_rng();
+
+    let iter = grid_iterator::grid_iterator(width, height, 4, 4);
 
     iter.for_each(|(i, j)| {
         let col_sum: Vec3 = (0..num_samples)
@@ -101,13 +100,13 @@ fn generate_image(height: usize, width: usize, num_samples: u32) -> ImageBuilder
                 let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
                 let ray = camera.get_ray(x, y);
-                color(&ray, &world, 50)
+                color(&ray, &world, depth)
             })
             .sum();
 
         let col = col_sum / (num_samples as f32);
 
-        builder.update(i, height - j - 1, col);
+        builder.update(i, height - j - 1, col, num_samples);
 
         let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
@@ -146,6 +145,26 @@ fn color(ray: &Ray, world: &HittableList, depth: u32) -> Vec3 {
 
 fn background_color(_ray: &Ray) -> Vec3 {
     Vec3(0.0, 0.0, 0.0)
+}
+
+fn build_camera(width: usize, height: usize) -> Camera {
+    let look_from = Vec3(13.0, 2.0, 3.0);
+    let look_at = Vec3(0.0, 0.0, 0.0);
+    let upward = Vec3(0.0, 1.0, 0.0);
+    let aspect_ratio = (width as f32) / (height as f32);
+    let vfov = std::f32::consts::PI / 9.0;
+    let aperture = 0.1;
+    let focal_dist = 10.0;
+
+    Camera::new(
+        look_from,
+        look_at,
+        upward,
+        vfov,
+        aspect_ratio,
+        aperture,
+        focal_dist,
+    )
 }
 
 fn populate_world() -> HittableList {

@@ -21,20 +21,23 @@ use Material::*;
 use Texture::*;
 
 fn main() -> Result<(), ImageError> {
-    // let width = 1200;
-    // let height = 800;
-    // let num_samples = 10;
     let width = 600;
     let height = 400;
-    let num_samples = 100;
-    let depth = 50;
-    let camera = build_camera(width, height);
 
     let start = std::time::Instant::now();
 
     let world = populate_world();
 
-    let image = generate_image(world, camera, height, width, num_samples, depth);
+    let scene_config = SceneConfig {
+        width,
+        height,
+        num_samples: 100,
+        depth: 50,
+        camera: build_camera(width, height),
+        world,
+    };
+
+    let image = generate_image(scene_config);
     println!(
         "Generated image in {:.2} seconds",
         start.elapsed().as_secs_f32()
@@ -43,6 +46,15 @@ fn main() -> Result<(), ImageError> {
     write_image(image.buffer(), height, "output.png")?;
 
     Ok(())
+}
+
+struct SceneConfig {
+    width: usize,
+    height: usize,
+    num_samples: u32,
+    depth: u32,
+    camera: Camera,
+    world: HittableList,
 }
 
 struct ImageBuilder {
@@ -74,39 +86,32 @@ impl ImageBuilder {
     }
 }
 
-fn generate_image(
-    world: HittableList,
-    camera: Camera,
-    height: usize,
-    width: usize,
-    num_samples: u32,
-    depth: u32,
-) -> ImageBuilder {
+fn generate_image(config: SceneConfig) -> ImageBuilder {
     let count = std::sync::atomic::AtomicU32::new(0);
     let bar = ProgressBar::new(100);
 
-    let mut builder = ImageBuilder::new(height, width);
+    let mut builder = ImageBuilder::new(config.height, config.width);
 
-    let num_pixels = height * width;
+    let num_pixels = config.height * config.width;
 
     let mut rng = rand::thread_rng();
 
-    let iter = grid_iterator::grid_iterator(width, height, 4, 4);
+    let iter = grid_iterator::grid_iterator(config.width, config.height, 4, 4);
 
     iter.for_each(|(i, j)| {
-        let col_sum: Vec3 = (0..num_samples)
+        let col_sum: Vec3 = (0..config.num_samples)
             .map(|_| {
-                let x = (i as f32 + rng.gen::<f32>()) / width as f32;
-                let y = (j as f32 + rng.gen::<f32>()) / height as f32;
+                let x = (i as f32 + rng.gen::<f32>()) / config.width as f32;
+                let y = (j as f32 + rng.gen::<f32>()) / config.height as f32;
 
-                let ray = camera.get_ray(x, y);
-                color(&ray, &world, depth)
+                let ray = config.camera.get_ray(x, y);
+                color(&ray, &config.world, config.depth)
             })
             .sum();
 
-        let col = col_sum / (num_samples as f32);
+        let col = col_sum / (config.num_samples as f32);
 
-        builder.update(i, height - j - 1, col, num_samples);
+        builder.update(i, config.height - j - 1, col, config.num_samples);
 
         let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
@@ -115,7 +120,7 @@ fn generate_image(
             bar.inc(1)
         }
         if (prev_count + 1) % (num_pixels / 10) as u32 == 0 {
-            write_image(builder.buffer(), height, "output.png").unwrap();
+            write_image(builder.buffer(), config.height, "output.png").unwrap();
         }
     });
 

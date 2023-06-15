@@ -96,14 +96,14 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
 
 fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     if depth <= 0 {
-        return background_color(&ray);
+        return background_color(ray);
     };
 
     // Start t_range at non-zero value to prevent self-intersection
     match world.hit(ray, 0.001..std::f32::MAX) {
         Some(hit_record) => {
             let scattered = match hit_record.material.scatter(ray, &hit_record) {
-                Some((new_ray, attenuation)) => attenuation * color(&new_ray, &world, depth - 1),
+                Some((new_ray, attenuation)) => attenuation * color(&new_ray, world, depth - 1),
                 None => Vec3(0.0, 0.0, 0.0),
             };
 

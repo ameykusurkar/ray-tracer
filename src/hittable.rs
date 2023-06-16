@@ -27,36 +27,39 @@ pub struct HittableList {
 }
 
 impl Hittable for Sphere {
-    // In theory, b = 2 * dot(ray.dir, oc). However, this cancels out with
-    // 2s in the quadratic formula.
     fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
+        // In theory, b = 2 * ray.dir.dot(oc). Since the 2 cancels out with
+        // other terms in the quadratic formula, we only need to compute half_b.
         let oc = ray.origin - self.center;
         let a = ray.dir.dot(ray.dir);
-        let b = ray.dir.dot(oc);
+        let half_b = ray.dir.dot(oc);
         let c = oc.dot(oc) - self.radius * self.radius;
-        let discriminant = b * b - a * c;
+        let discriminant = half_b * half_b - a * c;
 
-        if discriminant > 0.0 {
-            let candidate_ts = [
-                (-b - discriminant.sqrt()) / a,
-                (-b + discriminant.sqrt()) / a,
-            ];
+        // Either 0 roots, or 1 root (tangent)
+        if discriminant <= 0.0 {
+            return None;
+        }
 
-            for &t in candidate_ts.iter() {
-                if t_range.start < t && t < t_range.end {
-                    let intersection = ray.at_param(t);
-                    let normal = (intersection - self.center) / self.radius;
-                    return Some(HitRecord {
-                        intersection,
-                        normal,
-                        t,
-                        material: self.material,
-                    });
-                }
+        let discriminant_sqrt = discriminant.sqrt();
+
+        // Find the closest t in the range
+        let mut t = (-half_b - discriminant_sqrt) / a;
+        if t < t_range.start || t_range.end < t {
+            t = (-half_b + discriminant_sqrt) / a;
+            if t < t_range.start || t_range.end < t {
+                return None;
             }
         }
 
-        None
+        let intersection = ray.at_param(t);
+        let normal = (intersection - self.center) / self.radius;
+        Some(HitRecord {
+            intersection,
+            normal,
+            t,
+            material: self.material,
+        })
     }
 }
 

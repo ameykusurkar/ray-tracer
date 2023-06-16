@@ -1,23 +1,9 @@
 use image::error::ImageError;
 use indicatif::ProgressBar;
 use rand::Rng;
-
-mod camera;
-mod hittable;
-mod material;
-mod ray;
-mod texture;
-mod vec3;
-
-use camera::Camera;
-use hittable::{Hittable, HittableList, Sphere};
-use material::Material;
-use ray::Ray;
 use rayon::prelude::*;
-use texture::Texture;
-use vec3::Vec3;
-use Material::*;
-use Texture::*;
+
+use ray_tracer::{color, Camera, HittableList, Material, Sphere, Texture, Vec3};
 
 fn main() -> Result<(), ImageError> {
     let width = 1200;
@@ -94,29 +80,6 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
     pixels
 }
 
-fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
-    if depth <= 0 {
-        return background_color(ray);
-    };
-
-    // Start t_range at non-zero value to prevent self-intersection
-    match world.hit(ray, 0.001..std::f32::MAX) {
-        Some(hit_record) => {
-            let scattered = match hit_record.material.scatter(ray, &hit_record) {
-                Some((new_ray, attenuation)) => attenuation * color(&new_ray, world, depth - 1),
-                None => Vec3(0.0, 0.0, 0.0),
-            };
-
-            hit_record.material.emit() + scattered
-        }
-        None => background_color(ray),
-    }
-}
-
-fn background_color(_ray: &Ray) -> Vec3 {
-    Vec3(0.0, 0.0, 0.0)
-}
-
 fn populate_world() -> HittableList {
     let mut world = HittableList {
         hittables: Vec::new(),
@@ -125,7 +88,10 @@ fn populate_world() -> HittableList {
     world.hittables.push(Sphere {
         center: Vec3(0.0, -1000.0, 0.0),
         radius: 1000.0,
-        material: Lambertian(Checkered(Vec3(0.0, 0.0, 0.0), Vec3(1.0, 1.0, 1.0))),
+        material: Material::Lambertian(Texture::Checkered(
+            Vec3(0.0, 0.0, 0.0),
+            Vec3(1.0, 1.0, 1.0),
+        )),
     });
 
     let mut rng = rand::thread_rng();
@@ -151,17 +117,17 @@ fn populate_world() -> HittableList {
     world.hittables.push(Sphere {
         center: Vec3(-4.0, 1.0, 0.0),
         radius: 1.0,
-        material: Lambertian(Constant(Vec3(0.4, 0.2, 0.1))),
+        material: Material::Lambertian(Texture::Constant(Vec3(0.4, 0.2, 0.1))),
     });
     world.hittables.push(Sphere {
         center: Vec3(0.0, 1.0, 0.0),
         radius: 1.0,
-        material: Dielectric(1.5),
+        material: Material::Dielectric(1.5),
     });
     world.hittables.push(Sphere {
         center: Vec3(4.0, 1.0, 0.0),
         radius: 1.0,
-        material: Metal(Vec3(0.7, 0.6, 0.5), 0.0),
+        material: Material::Metal(Vec3(0.7, 0.6, 0.5), 0.0),
     });
 
     world.hittables.append(&mut generate_lights());
@@ -176,7 +142,7 @@ fn generate_lights() -> Vec<Sphere> {
             lights.push(Sphere {
                 center: Vec3(i as f32, 4.0, j as f32),
                 radius: 1.0,
-                material: Light,
+                material: Material::Light,
             });
         }
     }
@@ -189,11 +155,11 @@ fn random_material() -> Material {
     let choice = rng.gen::<f32>();
 
     if choice < 0.5 {
-        Lambertian(Constant(Vec3::random() * Vec3::random()))
+        Material::Lambertian(Texture::Constant(Vec3::random() * Vec3::random()))
     } else if choice < 0.75 {
-        Metal(0.5 * (Vec3::random() + 1.0), 0.5 * rng.gen::<f32>())
+        Material::Metal(0.5 * (Vec3::random() + 1.0), 0.5 * rng.gen::<f32>())
     } else {
-        Dielectric(1.5)
+        Material::Dielectric(1.5)
     }
 }
 

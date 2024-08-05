@@ -1,3 +1,4 @@
+use clap::Parser;
 use image::error::ImageError;
 use indicatif::ProgressBar;
 use rand::Rng;
@@ -19,24 +20,38 @@ use vec3::Vec3;
 use Material::*;
 use Texture::*;
 
+const BACKGROUND_COLOR: Vec3 = Vec3(0.0, 0.0, 0.0);
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Width of the output image
+    #[arg(short, long, default_value_t = 1200)]
+    width: u32,
+
+    /// Height of the output image
+    #[arg(short, long, default_value_t = 800)]
+    height: u32,
+
+    /// Number of samples per pixel
+    #[arg(short, long, default_value_t = 10)]
+    samples: u32,
+}
+
 fn main() -> Result<(), ImageError> {
-    let width = 1200;
-    let height = 800;
-    let num_samples = 10;
+    let args = Args::parse();
 
     let start = std::time::Instant::now();
-    let image = generate_image(height, width, num_samples);
+    let image = generate_image(args.height, args.width, args.samples);
     println!(
         "Generated image in {:.2} seconds",
         start.elapsed().as_secs_f32()
     );
 
-    write_image(&image, height, "output.png")?;
-
-    Ok(())
+    write_image(&image, args.height, "output.png")
 }
 
-fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
+fn generate_image(height: u32, width: u32, num_samples: u32) -> Vec<Vec3> {
     let world = populate_world();
 
     let look_from = Vec3(13.0, 2.0, 3.0);
@@ -57,7 +72,7 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
         focal_dist,
     );
 
-    let count = std::sync::atomic::AtomicI32::new(0);
+    let count = std::sync::atomic::AtomicU32::new(0);
     let bar = ProgressBar::new(100);
 
     let num_pixels = height * width;
@@ -94,27 +109,22 @@ fn generate_image(height: i32, width: i32, num_samples: i32) -> Vec<Vec3> {
     pixels
 }
 
-fn color(ray: &Ray, world: &HittableList, depth: i32) -> Vec3 {
+fn color(ray: &Ray, world: &HittableList, depth: u32) -> Vec3 {
     if depth <= 0 {
-        return background_color(ray);
+        return BACKGROUND_COLOR;
     };
 
     // Start t_range at non-zero value to prevent self-intersection
-    match world.hit(ray, 0.001..std::f32::MAX) {
-        Some(hit_record) => {
-            let scattered = match hit_record.material.scatter(ray, &hit_record) {
-                Some((new_ray, attenuation)) => attenuation * color(&new_ray, world, depth - 1),
-                None => Vec3(0.0, 0.0, 0.0),
-            };
+    if let Some(hit_record) = world.hit(ray, 0.001..std::f32::MAX) {
+        let scattered = match hit_record.material.scatter(ray, &hit_record) {
+            Some((new_ray, attenuation)) => attenuation * color(&new_ray, world, depth - 1),
+            None => Vec3(0.0, 0.0, 0.0),
+        };
 
-            hit_record.material.emit() + scattered
-        }
-        None => background_color(ray),
+        hit_record.material.emit() + scattered
+    } else {
+        BACKGROUND_COLOR
     }
-}
-
-fn background_color(_ray: &Ray) -> Vec3 {
-    Vec3(0.0, 0.0, 0.0)
 }
 
 fn populate_world() -> HittableList {
@@ -197,8 +207,8 @@ fn random_material() -> Material {
     }
 }
 
-fn write_image(image: &Vec<Vec3>, height: i32, path: &str) -> Result<(), ImageError> {
-    let width = image.len() as i32 / height;
+fn write_image(image: &Vec<Vec3>, height: u32, path: &str) -> Result<(), ImageError> {
+    let width = image.len() as u32 / height;
     let mut buffer = Vec::with_capacity((height * width * 3) as usize);
 
     for pixel in image {
@@ -214,9 +224,7 @@ fn write_image(image: &Vec<Vec3>, height: i32, path: &str) -> Result<(), ImageEr
         height as u32,
         image::ColorType::Rgb8,
         image::ImageFormat::Png,
-    )?;
-
-    Ok(())
+    )
 }
 
 fn to_rgb(val: f32) -> u8 {

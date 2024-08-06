@@ -25,13 +25,27 @@ struct Args {
     /// Number of samples per pixel
     #[arg(short, long, default_value_t = 10)]
     samples: u32,
+
+    /// Which scene to render
+    #[arg(long, value_enum, default_value_t = SceneArg::Spheres)]
+    scene: SceneArg,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum SceneArg {
+    Spheres,
+    Quads,
 }
 
 fn main() -> Result<(), ImageError> {
     let args = Args::parse();
 
     let start = std::time::Instant::now();
-    let image = generate_image(args.height, args.width, args.samples);
+    let scene = match args.scene {
+        SceneArg::Quads => build_scene_quads(args.height, args.width),
+        SceneArg::Spheres => build_scene_spheres(args.height, args.width),
+    };
+    let image = scene.render(args.height, args.width, args.samples);
     println!(
         "Generated image in {:.2} seconds",
         start.elapsed().as_secs_f32()
@@ -40,18 +54,85 @@ fn main() -> Result<(), ImageError> {
     write_image(&image, args.height, "output.png")
 }
 
-fn generate_image(height: u32, width: u32, num_samples: u32) -> Vec<Vec3> {
-    let objects = populate_world();
+fn build_scene_spheres(height: u32, width: u32) -> Scene {
+    let look_from = Vec3(13.0, 2.0, 3.0);
+    let look_at = Vec3(0.0, 0.0, 0.0);
+    let upward = Vec3(0.0, 1.0, 0.0);
+    let aspect_ratio = (width as f32) / (height as f32);
+    let vfov = std::f32::consts::PI / 9.0;
+    let aperture = 0.1;
+    let focal_dist = 10.0;
 
-    //let look_from = Vec3(13.0, 2.0, 3.0);
-    //let look_at = Vec3(0.0, 0.0, 0.0);
-    //let upward = Vec3(0.0, 1.0, 0.0);
+    let camera = Camera::new(
+        look_from,
+        look_at,
+        upward,
+        vfov,
+        aspect_ratio,
+        aperture,
+        focal_dist,
+    );
+
+    let mut objects = HittableList::new();
+
+    objects.push_sphere(Sphere {
+        center: Vec3(0.0, -1000.0, 0.0),
+        radius: 1000.0,
+        material: Material::Lambertian(Texture::Checkered(
+            Vec3(0.0, 0.0, 0.0),
+            Vec3(1.0, 1.0, 1.0),
+        )),
+    });
+
+    let mut rng = rand::thread_rng();
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let center = Vec3(
+                a as f32 + 0.9 * rng.gen::<f32>(),
+                0.2,
+                b as f32 + 0.9 * rng.gen::<f32>(),
+            );
+
+            if (center - Vec3(4.0, 0.2, 0.0)).magnitude() > 0.9 {
+                objects.push_sphere(Sphere {
+                    center,
+                    radius: 0.2,
+                    material: random_material(),
+                });
+            }
+        }
+    }
+
+    objects.push_sphere(Sphere {
+        center: Vec3(-4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Lambertian(Texture::Constant(Vec3(0.4, 0.2, 0.1))),
+    });
+    objects.push_sphere(Sphere {
+        center: Vec3(0.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Dielectric(1.5),
+    });
+    objects.push_sphere(Sphere {
+        center: Vec3(4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Metal(Vec3(0.7, 0.6, 0.5), 0.0),
+    });
+
+    for s in generate_lights() {
+        objects.push_sphere(s);
+    }
+
+    Scene { camera, objects }
+}
+
+fn build_scene_quads(height: u32, width: u32) -> Scene {
     let look_from = Vec3(0.0, 0.0, 9.0);
     let look_at = Vec3(0.0, 0.0, 0.0);
     let upward = Vec3(0.0, 1.0, 0.0);
 
     let aspect_ratio = (width as f32) / (height as f32);
-    //let vfov = std::f32::consts::PI / 9.0;
     let vfov = 80.0;
     let aperture = 0.1;
     let focal_dist = 10.0;
@@ -66,72 +147,9 @@ fn generate_image(height: u32, width: u32, num_samples: u32) -> Vec<Vec3> {
         focal_dist,
     );
 
-    let scene = Scene { objects, camera };
-    scene.render(height, width, num_samples)
-}
+    let mut objects = HittableList::new();
 
-//fn populate_world() -> HittableList {
-//    let mut world = HittableList {
-//        hittables: Vec::new(),
-//    };
-//
-//    world.hittables.push(Sphere {
-//        center: Vec3(0.0, -1000.0, 0.0),
-//        radius: 1000.0,
-//        material: Material::Lambertian(Texture::Checkered(
-//            Vec3(0.0, 0.0, 0.0),
-//            Vec3(1.0, 1.0, 1.0),
-//        )),
-//    });
-//
-//    let mut rng = rand::thread_rng();
-//
-//    for a in -11..11 {
-//        for b in -11..11 {
-//            let center = Vec3(
-//                a as f32 + 0.9 * rng.gen::<f32>(),
-//                0.2,
-//                b as f32 + 0.9 * rng.gen::<f32>(),
-//            );
-//
-//            if (center - Vec3(4.0, 0.2, 0.0)).magnitude() > 0.9 {
-//                world.hittables.push(Sphere {
-//                    center,
-//                    radius: 0.2,
-//                    material: random_material(),
-//                });
-//            }
-//        }
-//    }
-//
-//    world.hittables.push(Sphere {
-//        center: Vec3(-4.0, 1.0, 0.0),
-//        radius: 1.0,
-//        material: Material::Lambertian(Texture::Constant(Vec3(0.4, 0.2, 0.1))),
-//    });
-//    world.hittables.push(Sphere {
-//        center: Vec3(0.0, 1.0, 0.0),
-//        radius: 1.0,
-//        material: Material::Dielectric(1.5),
-//    });
-//    world.hittables.push(Sphere {
-//        center: Vec3(4.0, 1.0, 0.0),
-//        radius: 1.0,
-//        material: Material::Metal(Vec3(0.7, 0.6, 0.5), 0.0),
-//    });
-//
-//    world.hittables.append(&mut generate_lights());
-//
-//    world
-//}
-
-fn populate_world() -> HittableList {
-    let mut world = HittableList {
-        hittables: Vec::new(),
-    };
-
-    //let left_red     = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.2, 0.2)));
-    let left_red     = Material::Metal(Vec3(1.0, 1.0, 1.0), 0.05);
+    let left_red     = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.2, 0.2)));
     let back_green   = Material::Lambertian(Texture::Constant(Vec3(0.2, 1.0, 0.2)));
     let right_blue   = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.2, 1.0)));
     //let upper_orange = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.5, 0.0)));
@@ -139,14 +157,15 @@ fn populate_world() -> HittableList {
     let lower_teal   = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.8, 0.8)));
 
     // Quads
-    world.hittables.push(Quad::new(Vec3(-3.0,-2.0, 5.0), Vec3(0.0, 0.0, -4.0), Vec3(0.0, 4.0, 0.0), left_red));
-    world.hittables.push(Quad::new(Vec3(-2.0,-2.0, 0.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 4.0, 0.0), back_green));
-    world.hittables.push(Quad::new(Vec3( 3.0,-2.0, 1.0), Vec3(0.0, 0.0,  4.0), Vec3(0.0, 4.0, 0.0), right_blue));
-    world.hittables.push(Quad::new(Vec3(-2.0, 3.0, 1.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 0.0, 4.0), upper_orange));
-    world.hittables.push(Quad::new(Vec3(-2.0,-3.0, 5.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 0.0,-4.0), lower_teal));
+    objects.push_quad(Quad::new(Vec3(-3.0,-2.0, 5.0), Vec3(0.0, 0.0, -4.0), Vec3(0.0, 4.0, 0.0), left_red));
+    objects.push_quad(Quad::new(Vec3(-2.0,-2.0, 0.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 4.0, 0.0), back_green));
+    objects.push_quad(Quad::new(Vec3( 3.0,-2.0, 1.0), Vec3(0.0, 0.0,  4.0), Vec3(0.0, 4.0, 0.0), right_blue));
+    objects.push_quad(Quad::new(Vec3(-2.0, 3.0, 1.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 0.0, 4.0), upper_orange));
+    objects.push_quad(Quad::new(Vec3(-2.0,-3.0, 5.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 0.0,-4.0), lower_teal));
 
-    world
+    Scene { camera, objects }
 }
+
 fn generate_lights() -> Vec<Sphere> {
     let mut lights = Vec::new();
     for i in (-8..=8).step_by(4) {

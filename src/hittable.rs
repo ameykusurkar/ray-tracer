@@ -56,8 +56,23 @@ impl Hittable for Sphere {
 }
 
 pub struct HittableList {
-    // TODO: Allow this to be a vector of Hittables
-    pub hittables: Vec<Quad>,
+    hittables: Vec<AnyHittable>,
+}
+
+impl HittableList {
+    pub fn new() -> Self {
+        Self {
+            hittables: Vec::new(),
+        }
+    }
+
+    pub fn push_sphere(&mut self, sphere: Sphere) {
+        self.hittables.push(AnyHittable::Sphere(sphere));
+    }
+
+    pub fn push_quad(&mut self, quad: Quad) {
+        self.hittables.push(AnyHittable::Quad(quad));
+    }
 }
 
 impl Hittable for HittableList {
@@ -144,4 +159,18 @@ impl Hittable for Quad {
 fn is_interior(alpha: f32, beta: f32) -> bool {
     let unit_interval = 0.0..1.0;
     unit_interval.contains(&alpha) && unit_interval.contains(&beta)
+}
+
+enum AnyHittable {
+    Sphere(Sphere),
+    Quad(Quad),
+}
+
+impl Hittable for AnyHittable {
+    fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
+        match self {
+            AnyHittable::Sphere(sphere) => sphere.hit(ray, t_range),
+            AnyHittable::Quad(quad) => quad.hit(ray, t_range),
+        }
+    }
 }

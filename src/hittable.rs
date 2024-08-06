@@ -139,9 +139,9 @@ impl Hittable for Quad {
         }
 
         let intersection = ray.at_param(t);
-        let planar_hitpt_vector = intersection - self.q;
-        let alpha = Vec3::dot(self.w, Vec3::cross(planar_hitpt_vector, self.v));
-        let beta = Vec3::dot(self.w, Vec3::cross(self.u, planar_hitpt_vector));
+        let planar_hitpoint_vector = intersection - self.q;
+        let alpha = Vec3::dot(self.w, Vec3::cross(planar_hitpoint_vector, self.v));
+        let beta = Vec3::dot(self.w, Vec3::cross(self.u, planar_hitpoint_vector));
 
         if !is_interior(alpha, beta) {
             return None;

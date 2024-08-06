@@ -5,9 +5,9 @@ use rand::Rng;
 use ray_tracer::Camera;
 use ray_tracer::HittableList;
 use ray_tracer::Material;
+use ray_tracer::Quad;
 use ray_tracer::Scene;
 use ray_tracer::Sphere;
-use ray_tracer::Quad;
 use ray_tracer::Texture;
 use ray_tracer::Vec3;
 
@@ -149,19 +149,44 @@ fn build_scene_quads(height: u32, width: u32) -> Scene {
 
     let mut objects = HittableList::new();
 
-    let left_red     = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.2, 0.2)));
-    let back_green   = Material::Lambertian(Texture::Constant(Vec3(0.2, 1.0, 0.2)));
-    let right_blue   = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.2, 1.0)));
+    let left_red = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.2, 0.2)));
+    let back_green = Material::Lambertian(Texture::Constant(Vec3(0.2, 1.0, 0.2)));
+    let right_blue = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.2, 1.0)));
     //let upper_orange = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.5, 0.0)));
     let upper_orange = Material::Light;
-    let lower_teal   = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.8, 0.8)));
+    let lower_teal = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.8, 0.8)));
 
     // Quads
-    objects.push_quad(Quad::new(Vec3(-3.0,-2.0, 5.0), Vec3(0.0, 0.0, -4.0), Vec3(0.0, 4.0, 0.0), left_red));
-    objects.push_quad(Quad::new(Vec3(-2.0,-2.0, 0.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 4.0, 0.0), back_green));
-    objects.push_quad(Quad::new(Vec3( 3.0,-2.0, 1.0), Vec3(0.0, 0.0,  4.0), Vec3(0.0, 4.0, 0.0), right_blue));
-    objects.push_quad(Quad::new(Vec3(-2.0, 3.0, 1.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 0.0, 4.0), upper_orange));
-    objects.push_quad(Quad::new(Vec3(-2.0,-3.0, 5.0), Vec3(4.0, 0.0,  0.0), Vec3(0.0, 0.0,-4.0), lower_teal));
+    objects.push_quad(Quad::new(
+        Vec3(-3.0, -2.0, 5.0),
+        Vec3(0.0, 0.0, -4.0),
+        Vec3(0.0, 4.0, 0.0),
+        left_red,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(-2.0, -2.0, 0.0),
+        Vec3(4.0, 0.0, 0.0),
+        Vec3(0.0, 4.0, 0.0),
+        back_green,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(3.0, -2.0, 1.0),
+        Vec3(0.0, 0.0, 4.0),
+        Vec3(0.0, 4.0, 0.0),
+        right_blue,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(-2.0, 3.0, 1.0),
+        Vec3(4.0, 0.0, 0.0),
+        Vec3(0.0, 0.0, 4.0),
+        upper_orange,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(-2.0, -3.0, 5.0),
+        Vec3(4.0, 0.0, 0.0),
+        Vec3(0.0, 0.0, -4.0),
+        lower_teal,
+    ));
 
     Scene { camera, objects }
 }

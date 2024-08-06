@@ -133,7 +133,7 @@ fn build_scene_quads(height: u32, width: u32) -> Scene {
     let upward = Vec3(0.0, 1.0, 0.0);
 
     let aspect_ratio = (width as f32) / (height as f32);
-    let vfov = 80.0;
+    let vfov = std::f32::consts::PI / 2.0;
     let aperture = 0.1;
     let focal_dist = 10.0;
 
@@ -149,8 +149,9 @@ fn build_scene_quads(height: u32, width: u32) -> Scene {
 
     let mut objects = HittableList::new();
 
-    let left_red = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.2, 0.2)));
-    let back_green = Material::Lambertian(Texture::Constant(Vec3(0.2, 1.0, 0.2)));
+    //let left_red = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.2, 0.2)));
+    let left_red = Material::Metal(Vec3(1.0, 0.2, 0.2), 0.01);
+    let back_green = Material::Lambertian(Texture::Constant(Vec3(0.2, 1.0, 0.1)));
     let right_blue = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.2, 1.0)));
     //let upper_orange = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.5, 0.0)));
     let upper_orange = Material::Light;

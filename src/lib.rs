@@ -12,11 +12,11 @@ mod vec3;
 use hittable::Hittable;
 
 pub use camera::Camera;
-pub use hittable::{HittableList, Sphere};
-pub use ray::Ray;
-pub use vec3::Vec3;
+pub use hittable::{HittableList, Quad, Sphere};
 pub use material::Material;
+pub use ray::Ray;
 pub use texture::Texture;
+pub use vec3::Vec3;
 
 const BACKGROUND_COLOR: Vec3 = Vec3(0.0, 0.0, 0.0);
 

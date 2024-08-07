@@ -147,9 +147,16 @@ impl Hittable for Quad {
             return None;
         }
 
+        // Can hit from either side of the plane
+        let normal = if Vec3::dot(ray.dir, self.normal) < 0.0 {
+            self.normal
+        } else {
+            -1.0 * self.normal
+        };
+
         Some(HitRecord {
             intersection,
-            normal: self.normal,
+            normal,
             t,
             material: self.material,
         })

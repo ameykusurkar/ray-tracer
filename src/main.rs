@@ -35,6 +35,7 @@ struct Args {
 enum SceneArg {
     Spheres,
     Quads,
+    CornellBox,
 }
 
 fn main() -> Result<(), ImageError> {
@@ -44,6 +45,7 @@ fn main() -> Result<(), ImageError> {
     let scene = match args.scene {
         SceneArg::Quads => build_scene_quads(args.height, args.width),
         SceneArg::Spheres => build_scene_spheres(args.height, args.width),
+        SceneArg::CornellBox => build_cornell_box(args.height, args.width),
     };
     let image = scene.render(args.height, args.width, args.samples);
     println!(
@@ -192,6 +194,72 @@ fn build_scene_quads(height: u32, width: u32) -> Scene {
     Scene { camera, objects }
 }
 
+fn build_cornell_box(height: u32, width: u32) -> Scene {
+    let look_from = Vec3(278.0, 278.0, -800.0);
+    let look_at = Vec3(278.0, 278.0, 0.0);
+    let upward = Vec3(0.0, 1.0, 0.0);
+
+    let aspect_ratio = (width as f32) / (height as f32);
+    let vfov = radians(40.0);
+    let aperture = 0.1;
+    let focal_dist = 10.0;
+
+    let camera = Camera::new(
+        look_from,
+        look_at,
+        upward,
+        vfov,
+        aspect_ratio,
+        aperture,
+        focal_dist,
+    );
+
+    let mut objects = HittableList::new();
+
+    let red = Material::Lambertian(Texture::Constant(Vec3(0.65, 0.05, 0.05)));
+    let white = Material::Lambertian(Texture::Constant(Vec3(0.73, 0.73, 0.73)));
+    let green = Material::Lambertian(Texture::Constant(Vec3(0.12, 0.45, 0.15)));
+
+    objects.push_quad(Quad::new(
+        Vec3(555.0, 0.0, 0.0),
+        Vec3(0.0, 555.0, 0.0),
+        Vec3(0.0, 0.0, 555.0),
+        green,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(0.0, 0.0, 0.0),
+        Vec3(0.0, 555.0, 0.0),
+        Vec3(0.0, 0.0, 555.0),
+        red,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(343.0, 554.0, 332.0),
+        Vec3(-130.0, 0.0, 0.0),
+        Vec3(0.0, 0.0, -105.0),
+        Material::Light,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(0.0, 0.0, 0.0),
+        Vec3(555.0, 0.0, 0.0),
+        Vec3(0.0, 0.0, 555.0),
+        white,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(555.0, 555.0, 555.0),
+        Vec3(-555.0, 0.0, 0.0),
+        Vec3(0.0, 0.0, -555.0),
+        white,
+    ));
+    objects.push_quad(Quad::new(
+        Vec3(0.0, 0.0, 555.0),
+        Vec3(555.0, 0.0, 0.0),
+        Vec3(0.0, 555.0, 0.0),
+        white,
+    ));
+
+    Scene { camera, objects }
+}
+
 fn generate_lights() -> Vec<Sphere> {
     let mut lights = Vec::new();
     for i in (-8..=8).step_by(4) {
@@ -242,4 +310,8 @@ fn write_image(image: &Vec<Vec3>, height: u32, path: &str) -> Result<(), ImageEr
 
 fn to_rgb(val: f32) -> u8 {
     (255.0 * val.sqrt()) as u8
+}
+
+fn radians(deg: f32) -> f32 {
+    std::f32::consts::PI * (deg / 180.0)
 }

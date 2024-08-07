@@ -257,6 +257,14 @@ fn build_cornell_box(height: u32, width: u32) -> Scene {
         white,
     ));
 
+    for s in box_sides(Vec3(130.0, 0.0, 65.0), Vec3(295.0, 165.0, 230.0), white) {
+        objects.push_quad(s)
+    }
+
+    for s in box_sides(Vec3(265.0, 0.0, 295.0), Vec3(430.0, 330.0, 460.0), white) {
+        objects.push_quad(s)
+    }
+
     Scene { camera, objects }
 }
 
@@ -314,4 +322,24 @@ fn to_rgb(val: f32) -> u8 {
 
 fn radians(deg: f32) -> f32 {
     std::f32::consts::PI * (deg / 180.0)
+}
+
+/// Returns the 3D box (six sides) that contains the opposite vertices a and b
+fn box_sides(a: Vec3, b: Vec3, mat: Material) -> Vec<Quad> {
+    // Construct the two opposite vertices with the minimum and maximum coordinates.
+    let min = Vec3(a.0.min(b.0), a.1.min(b.1), a.2.min(b.2));
+    let max = Vec3(a.0.max(b.0), a.1.max(b.1), a.2.max(b.2));
+
+    let dx = Vec3(max.0 - min.0, 0.0, 0.0);
+    let dy = Vec3(0.0, max.1 - min.1, 0.0);
+    let dz = Vec3(0.0, 0.0, max.2 - min.2);
+
+    vec![
+        Quad::new(Vec3(min.0, min.1, max.2), dx, dy, mat), // front
+        Quad::new(Vec3(max.0, min.1, max.2), -dz, dy, mat), // right
+        Quad::new(Vec3(max.0, min.1, min.2), -dx, dy, mat), // back
+        Quad::new(Vec3(min.0, min.1, min.2), dz, dy, mat), // left
+        Quad::new(Vec3(min.0, max.1, max.2), dx, -dz, mat), // top
+        Quad::new(Vec3(min.0, min.1, min.2), dx, dz, mat), // bottom
+    ]
 }

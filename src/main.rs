@@ -156,7 +156,7 @@ fn build_scene_quads(height: u32, width: u32) -> Scene {
     let back_green = Material::Lambertian(Texture::Constant(Vec3(0.2, 1.0, 0.1)));
     let right_blue = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.2, 1.0)));
     //let upper_orange = Material::Lambertian(Texture::Constant(Vec3(1.0, 0.5, 0.0)));
-    let upper_orange = Material::Light;
+    let upper_orange = Material::Light(Vec3(1.0, 1.0, 1.0));
     let lower_teal = Material::Lambertian(Texture::Constant(Vec3(0.2, 0.8, 0.8)));
 
     // Quads
@@ -202,7 +202,7 @@ fn build_cornell_box(height: u32, width: u32) -> Scene {
     let aspect_ratio = (width as f32) / (height as f32);
     let vfov = radians(40.0);
     let aperture = 0.1;
-    let focal_dist = 10.0;
+    let focal_dist = (look_at - look_from).magnitude();
 
     let camera = Camera::new(
         look_from,
@@ -236,7 +236,7 @@ fn build_cornell_box(height: u32, width: u32) -> Scene {
         Vec3(343.0, 554.0, 332.0),
         Vec3(-130.0, 0.0, 0.0),
         Vec3(0.0, 0.0, -105.0),
-        Material::Light,
+        Material::Light(Vec3(15.0, 15.0, 15.0)),
     ));
     objects.push_quad(Quad::new(
         Vec3(0.0, 0.0, 0.0),
@@ -267,7 +267,7 @@ fn generate_lights() -> Vec<Sphere> {
             lights.push(Sphere {
                 center: Vec3(i as f32, 4.0, j as f32),
                 radius: 1.0,
-                material: Material::Light,
+                material: Material::Light(Vec3(1.0, 1.0, 1.0)),
             });
         }
     }

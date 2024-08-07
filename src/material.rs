@@ -10,7 +10,7 @@ pub enum Material {
     Lambertian(Texture),
     Metal(Vec3, f32),
     Dielectric(f32),
-    Light,
+    Light(Vec3),
 }
 
 impl Material {
@@ -64,13 +64,13 @@ impl Material {
                 };
                 Some((ray, Vec3(1.0, 1.0, 1.0)))
             }
-            Material::Light => None,
+            Material::Light(_) => None,
         }
     }
 
     pub fn emit(&self) -> Vec3 {
         match self {
-            Material::Light => Vec3(1.0, 1.0, 1.0),
+            Material::Light(color) => *color,
             _ => Vec3(0.0, 0.0, 0.0),
         }
     }

@@ -1,5 +1,5 @@
 use rand::Rng;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Default)]
 pub struct Vec3(pub f32, pub f32, pub f32);
@@ -120,5 +120,13 @@ impl Mul<Vec3> for f32 {
 
     fn mul(self, rhs: Vec3) -> Vec3 {
         Vec3(self * rhs.0, self * rhs.1, self * rhs.2)
+    }
+}
+
+impl Neg for Vec3 {
+    type Output = Vec3;
+
+    fn neg(self) -> Self::Output {
+        Vec3(-self.0, -self.1, -self.2)
     }
 }

@@ -10,7 +10,7 @@ pub enum Material {
     Lambertian(Texture),
     Metal(Vec3, f32),
     Dielectric(f32),
-    Light,
+    Light(Vec3),
 }
 
 impl Material {
@@ -45,7 +45,7 @@ impl Material {
                     // Ray is coming from outside the surface
                     (hit_record.normal, 1.0 / ref_idx, -ray_normal_dot)
                 } else {
-                    (-1.0 * hit_record.normal, *ref_idx, ref_idx * ray_normal_dot)
+                    (-hit_record.normal, *ref_idx, ref_idx * ray_normal_dot)
                 };
 
                 let reflect_prob = schlick(cos_i, *ref_idx);
@@ -64,13 +64,13 @@ impl Material {
                 };
                 Some((ray, Vec3(1.0, 1.0, 1.0)))
             }
-            Material::Light => None,
+            Material::Light(_) => None,
         }
     }
 
     pub fn emit(&self) -> Vec3 {
         match self {
-            Material::Light => Vec3(1.0, 1.0, 1.0),
+            Material::Light(color) => *color,
             _ => Vec3(0.0, 0.0, 0.0),
         }
     }
@@ -91,8 +91,7 @@ fn refract(incident: Vec3, normal: Vec3, ratio: f32) -> Option<Vec3> {
     }
 }
 
-// Approximates the probability of a ray being reflected,
-// as opposed to being refracted
+/// Approximates the probability of a ray being reflected, as opposed to being refracted
 fn schlick(cos_i: f32, ref_idx: f32) -> f32 {
     let r0_sqrt = (1.0 - ref_idx) / (1.0 + ref_idx);
     let r0 = r0_sqrt * r0_sqrt;

@@ -11,7 +11,8 @@ pub trait Hittable {
 pub struct HitRecord {
     pub intersection: Vec3,
     pub normal: Vec3,
-    pub t: f32, // param for the incident ray
+    /// param for the incident ray
+    pub t: f32,
     pub material: Material,
 }
 
@@ -22,11 +23,11 @@ pub struct Sphere {
 }
 
 impl Hittable for Sphere {
-    // In theory, b = 2 * dot(ray.dir, oc). However, this cancels out with
-    // 2s in the quadratic formula.
     fn hit(&self, ray: &Ray, t_range: Range<f32>) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
         let a = ray.dir.dot(ray.dir);
+        // In theory, b = 2 * dot(ray.dir, oc). However, this cancels out with
+        // 2s in the quadratic formula.
         let b = ray.dir.dot(oc);
         let c = oc.dot(oc) - self.radius * self.radius;
         let discriminant = b * b - a * c;
@@ -151,7 +152,7 @@ impl Hittable for Quad {
         let normal = if Vec3::dot(ray.dir, self.normal) < 0.0 {
             self.normal
         } else {
-            -1.0 * self.normal
+            -self.normal
         };
 
         Some(HitRecord {

@@ -1,5 +1,5 @@
 use rand::Rng;
-use std::ops::{Add, Div, Mul, Sub, Neg};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, Default)]
 pub struct Vec3(pub f32, pub f32, pub f32);

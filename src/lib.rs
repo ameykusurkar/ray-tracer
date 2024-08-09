@@ -43,7 +43,7 @@ impl Scene {
                         let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
                         let ray = &self.camera.get_ray(x, y);
-                        color(&ray, &self.objects, depth)
+                        color(ray, &self.objects, depth)
                     })
                     .sum();
 
@@ -66,19 +66,27 @@ impl Scene {
 }
 
 fn color(ray: &Ray, objects: &HittableList, depth: u32) -> Vec3 {
-    if depth <= 0 {
-        return BACKGROUND_COLOR;
-    };
+    let mut light = BACKGROUND_COLOR;
+    let mut ray: Ray = ray.to_owned();
+    let mut ray_color = Vec3(1.0, 1.0, 1.0);
 
-    // Start t_range at non-zero value to prevent self-intersection
-    if let Some(hit_record) = objects.hit(ray, 0.001..std::f32::MAX) {
-        let scattered = match hit_record.material.scatter(ray, &hit_record) {
-            Some((new_ray, attenuation)) => attenuation * color(&new_ray, objects, depth - 1),
-            None => Vec3(0.0, 0.0, 0.0),
-        };
+    for _ in 0..depth {
+        // Start t_range at non-zero value to prevent self-intersection
+        if let Some(hit_record) = objects.hit(&ray, 0.001..std::f32::MAX) {
+            light = light + hit_record.material.emit() * ray_color;
 
-        hit_record.material.emit() + scattered
-    } else {
-        BACKGROUND_COLOR
+            if let Some((new_ray, attenuation)) = hit_record.material.scatter(&ray, &hit_record) {
+                ray_color = ray_color * attenuation;
+                ray = new_ray;
+            } else {
+                // Ray hit something, but no scatter to follow
+                break;
+            }
+        } else {
+            // Ray hit nothing
+            break;
+        }
     }
+
+    light
 }

@@ -22,9 +22,13 @@ struct Args {
     #[arg(short, long, default_value_t = 800)]
     height: u32,
 
-    /// Number of samples per pixel
+    /// Ray samples per pixel
     #[arg(short, long, default_value_t = 10)]
     samples: u32,
+
+    /// Bounces per ray
+    #[arg(short, long, default_value_t = 10)]
+    depth: u32,
 
     /// Which scene to render
     #[arg(long, value_enum, default_value_t = SceneArg::Spheres)]
@@ -47,7 +51,7 @@ fn main() -> Result<(), ImageError> {
         SceneArg::Spheres => build_scene_spheres(args.height, args.width),
         SceneArg::CornellBox => build_cornell_box(args.height, args.width),
     };
-    let image = scene.render(args.height, args.width, args.samples);
+    let image = scene.render(args.height, args.width, args.samples, args.depth);
     println!(
         "Generated image in {:.2} seconds",
         start.elapsed().as_secs_f32()

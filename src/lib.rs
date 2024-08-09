@@ -26,7 +26,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn render(&self, height: u32, width: u32, num_samples: u32) -> Vec<Vec3> {
+    pub fn render(&self, height: u32, width: u32, num_samples: u32, depth: u32) -> Vec<Vec3> {
         let count = std::sync::atomic::AtomicU32::new(0);
         let bar = ProgressBar::new(100);
 
@@ -43,7 +43,7 @@ impl Scene {
                         let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
                         let ray = &self.camera.get_ray(x, y);
-                        color(&ray, &self.objects, 50)
+                        color(&ray, &self.objects, depth)
                     })
                     .sum();
 

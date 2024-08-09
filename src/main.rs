@@ -258,16 +258,23 @@ fn build_cornell_box(height: u32, width: u32) -> Scene {
         Vec3(0.0, 0.0, 555.0),
         Vec3(555.0, 0.0, 0.0),
         Vec3(0.0, 555.0, 0.0),
-        white,
+        Material::Metal(Vec3(1.0, 0.7, 0.8), 0.3),
     ));
 
     for s in box_sides(Vec3(130.0, 0.0, 65.0), Vec3(295.0, 165.0, 230.0), white) {
         objects.push_quad(s)
     }
 
+    // Taller box
     for s in box_sides(Vec3(265.0, 0.0, 295.0), Vec3(430.0, 330.0, 460.0), white) {
         objects.push_quad(s)
     }
+
+    objects.push_sphere(Sphere {
+        center: Vec3(400.0, 50.0, 80.0),
+        radius: 50.0,
+        material: Material::Metal(Vec3(0.3, 0.2, 0.8), 0.3),
+    });
 
     Scene { camera, objects }
 }

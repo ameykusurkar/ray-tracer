@@ -1,6 +1,4 @@
-use indicatif::ProgressBar;
 use rand::Rng;
-use rayon::prelude::*;
 
 mod camera;
 mod hittable;
@@ -26,45 +24,50 @@ pub struct Scene {
 }
 
 impl Scene {
+    #[inline(always)]
     pub fn render(&self, height: u32, width: u32, num_samples: u32, depth: u32) -> Vec<Vec3> {
-        let count = std::sync::atomic::AtomicU32::new(0);
-        let bar = ProgressBar::new(100);
+        //let count = std::sync::atomic::AtomicU32::new(0);
+        //let bar = ProgressBar::new(100);
 
         let num_pixels = height * width;
-        let pixels = (0..num_pixels)
-            .into_par_iter()
-            .map(|n| {
-                let i = n % width;
-                let j = height - (n / width) - 1;
-                let mut rng = rand::thread_rng();
-                let col_sum: Vec3 = (0..num_samples)
-                    .map(|_| {
-                        let x = (i as f32 + rng.gen::<f32>()) / width as f32;
-                        let y = (j as f32 + rng.gen::<f32>()) / height as f32;
+        let mut pixels: Vec<Vec3> = Vec::with_capacity(num_pixels as usize);
+        //pixels.extend((0..num_pixels).map(|n| {
+        for n in 0..num_pixels {
+            let i = n % width;
+            let j = height - (n / width) - 1;
+            let mut rng = rand::thread_rng();
+            let mut col_sum = Vec3(0.0, 0.0, 0.0);
+            //let col_sum: Vec3 = (0..num_samples)
+            for _ in 0..num_samples {
+                //.map(|_| {
+                let x = (i as f32 + rng.gen::<f32>()) / width as f32;
+                let y = (j as f32 + rng.gen::<f32>()) / height as f32;
 
-                        let ray = &self.camera.get_ray(x, y);
-                        color(ray, &self.objects, depth)
-                    })
-                    .sum();
+                let ray = &self.camera.get_ray(x, y);
+                col_sum = col_sum + color(ray, &self.objects, depth);
+                //})
+            }
+            //.sum();
 
-                let col = col_sum / (num_samples as f32);
+            let col = col_sum / (num_samples as f32);
 
-                let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                let section = height * width / 100;
-                if (prev_count + 1) % section == 0 {
-                    bar.inc(1)
-                }
+            //let prev_count = count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            //let section = height * width / 100;
+            //if (prev_count + 1) % section == 0 {
+            //bar.inc(1)
+            //}
 
-                col
-            })
-            .collect();
+            pixels.push(col);
+            //}));
+        }
 
-        bar.finish();
+        //bar.finish();
 
         pixels
     }
 }
 
+#[inline(always)]
 fn color(ray: &Ray, objects: &HittableList, depth: u32) -> Vec3 {
     let mut light = BACKGROUND_COLOR;
     let mut ray: Ray = ray.to_owned();
